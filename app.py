@@ -111,7 +111,9 @@ def apply_custom_css():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         
+        /* 0. Robust Light Mode Force (Fight System Dark Mode) */
         :root {
+            color-scheme: light !important;
             --primary: #6366f1;
             --primary-light: #818cf8;
             --secondary: #64748b;
@@ -122,6 +124,12 @@ def apply_custom_css():
             --text-main: #0f172a;
             --text-muted: #64748b;
             --border: #e2e8f0;
+            
+            /* Streamlit Internal Variables Override */
+            --st-background-color: #ffffff !important;
+            --st-secondary-background-color: #f8fafc !important;
+            --st-text-color: #0f172a !important;
+            --st-primary-color: #6366f1 !important;
         }
 
         /* 1. Global Light Mode Enforcement (Crucial for Streamlit Cloud) */
@@ -129,10 +137,13 @@ def apply_custom_css():
             background-color: white !important;
             color: var(--text-main) !important;
             font-family: 'Plus Jakarta Sans', sans-serif !important;
+            color-scheme: light !important;
         }
         
-        [data-testid="stVerticalBlock"], [data-testid="stHorizontalBlock"], .main {
+        /* Stop the "Dark Mode" bleeding on specific components */
+        [data-testid="stVerticalBlock"], [data-testid="stHorizontalBlock"], .main, [data-testid="stExpander"] {
             background-color: transparent !important;
+            color: var(--text-main) !important;
         }
 
         /* 2. Charts & Analytics Fix (Force White Backgrounds) */
@@ -144,9 +155,11 @@ def apply_custom_css():
             box-shadow: 0 4px 12px rgba(0,0,0,0.02) !important;
         }
         
-        /* Force chart labels to be dark */
-        .vega-bind label, .vega-actions-wrapper {
+        /* Force chart labels and tooltips to be dark text on light bg */
+        .vega-bind label, .vega-actions-wrapper, .vg-tooltip {
             color: var(--text-main) !important;
+            background-color: white !important;
+            border-color: var(--border) !important;
         }
         
         .vega-actions { display: none !important; }
@@ -162,6 +175,12 @@ def apply_custom_css():
             margin: 2rem auto !important;
         }
         
+        [data-testid="stForm"] h2 {
+            color: var(--primary) !important;
+            font-weight: 800 !important;
+            text-align: center;
+        }
+
         /* Login Button Visibility */
         [data-testid="stForm"] button[kind="primary"] {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%) !important;
@@ -188,7 +207,7 @@ def apply_custom_css():
             border-radius: 0.75rem !important;
         }
 
-        /* 5. Radio Buttons Fix (Stop them looking like big dots) */
+        /* 5. Radio Buttons Fix (Professional Toggle Switches) */
         [data-testid="stRadio"] div[role="radiogroup"] {
             background-color: #f8fafc !important;
             padding: 8px !important;
@@ -211,9 +230,10 @@ def apply_custom_css():
             transition: all 0.2s ease !important;
             margin: 0 !important;
         }
-
-        [data-testid="stRadio"] label[data-baseweb="radio"] > div:first-child {
-            display: none !important; /* Hide the default radio circle */
+        
+        /* Hide the ugly default radio circle */
+        [data-testid="stRadio"] label div[data-baseweb="radio"] > div:first-child {
+            display: none !important;
         }
 
         /* 6. Sidebar Collapse Button Fix */
@@ -235,15 +255,24 @@ def apply_custom_css():
             border-right: 1px solid var(--border) !important;
         }
         
-        .option-menu-container {
-            background-color: transparent !important;
+        [data-testid="stSidebar"] .stMarkdown h3 {
+            color: var(--primary) !important;
+            font-weight: 800;
+            margin-top: 1rem;
         }
 
-        /* 8. Dataframes & Tables */
-        [data-testid="stDataFrame"], [data-testid="stTable"] {
+        /* 8. Dataframes & Tables (Force White Theme) */
+        [data-testid="stDataFrame"], [data-testid="stTable"], .stDataFrame, .stTable {
             background-color: white !important;
             border-radius: 0.75rem !important;
             border: 1px solid var(--border) !important;
+            color: var(--text-main) !important;
+        }
+        
+        /* Fix the actual table cells in dataframes */
+        [data-testid="stDataFrame"] td, [data-testid="stTable"] td {
+            color: var(--text-main) !important;
+            background-color: white !important;
         }
 
         /* 9. Premium Card Design */
