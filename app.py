@@ -112,6 +112,7 @@ def apply_custom_css():
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         
         :root {
+            color-scheme: light !important;
             --primary: #6366f1;
             --primary-light: #818cf8;
             --secondary: #64748b;
@@ -122,6 +123,20 @@ def apply_custom_css():
             --text-main: #0f172a;
             --text-muted: #64748b;
             --border: #e2e8f0;
+
+            /* Force Streamlit internal variables to light mode */
+            --st-background-color: #ffffff !important;
+            --st-secondary-background-color: #f8fafc !important;
+            --st-text-color: #0f172a !important;
+            --st-primary-color: #6366f1 !important;
+        }
+
+        /* Force Light Theme globally and ignore system preferences */
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp {
+            background-color: white !important;
+            color: var(--text-main) !important;
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            color-scheme: light !important;
         }
 
         /* Force Sidebar Collapse Button Visibility */
@@ -136,6 +151,7 @@ def apply_custom_css():
             transition: all 0.2s ease !important;
             left: 10px !important;
             top: 10px !important;
+            z-index: 100 !important;
         }
         
         [data-testid="stSidebarCollapse"]:hover {
@@ -143,11 +159,22 @@ def apply_custom_css():
             box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
         }
 
-        /* Force Light Theme globally */
-        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp {
-            background-color: var(--bg-main) !important;
+        /* Harden widget backgrounds to prevent dark mode bleed */
+        .stTextInput input, .stNumberInput input, .stSelectbox select, .stTextArea textarea, .stMultiSelect div[role="listbox"] {
+            background-color: white !important;
             color: var(--text-main) !important;
-            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            border: 1px solid var(--border) !important;
+        }
+
+        /* Prevent labels from becoming white in dark mode */
+        label, .stMarkdown, p, span, h1, h2, h3, h4, h5, h6 {
+            color: var(--text-main) !important;
+        }
+
+        /* Force chart backgrounds and labels */
+        [data-testid="stVegaLiteChart"], .vega-embed, canvas {
+            background-color: white !important;
+            color: var(--text-main) !important;
         }
         
         .main {
