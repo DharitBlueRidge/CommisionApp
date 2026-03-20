@@ -145,13 +145,18 @@ def apply_custom_css():
 
         /* Force Light Theme globally and override Streamlit Cloud defaults */
         html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp {
-            background-color: var(--bg-main) !important;
+            background-color: white !important;
             color: var(--text-main) !important;
             font-family: 'Plus Jakarta Sans', sans-serif !important;
         }
         
+        /* Force specific background for all main containers */
+        [data-testid="stVerticalBlock"], [data-testid="stHorizontalBlock"], [data-testid="stExpander"] {
+            background-color: transparent !important;
+        }
+
         .main {
-            background-color: var(--bg-main) !important;
+            background-color: white !important;
             background-image: none !important;
         }
 
@@ -350,34 +355,32 @@ def apply_custom_css():
         /* Modern Dataframe and Table Enhancement */
         [data-testid="stDataFrame"], [data-testid="stTable"] {
             background-color: transparent !important;
-        }
-
-        /* Target the actual inner table for borders without clipping headers */
-        [data-testid="stDataFrame"] [data-testid="stWidgetLabel"], 
-        [data-testid="stTable"] [data-testid="stWidgetLabel"] {
-            color: var(--primary) !important;
-            font-weight: 700 !important;
-        }
-
-        /* Prevent double borders and clipping */
-        [data-testid="stDataFrame"] > div:first-child {
             border: none !important;
         }
 
-        [data-testid="stTable"] thead th, [data-testid="stDataFrame"] thead th {
+        /* Clean up the inner container that Streamlit adds */
+        [data-testid="stDataFrame"] > div:first-child, 
+        [data-testid="stTable"] > div:first-child {
+            border: 1px solid var(--border) !important;
+            border-radius: 0.75rem !important;
+            background-color: white !important;
+            overflow: hidden !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02) !important;
+        }
+
+        /* Remove the weird artifact borders on headers */
+        [data-testid="stDataFrame"] thead th, 
+        [data-testid="stTable"] thead th {
             background-color: #f8fafc !important;
-            color: var(--secondary) !important;
-            font-weight: 700 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.05em !important;
             border: none !important;
-            padding: 12px !important;
+            border-bottom: 1px solid var(--border) !important;
+            padding: 12px 16px !important;
         }
 
-        [data-testid="stTable"] td, [data-testid="stDataFrame"] td {
+        /* Stylize the data cells */
+        [data-testid="stTable"] td {
             border-bottom: 1px solid #f1f5f9 !important;
-            padding: 14px 16px !important;
-            color: var(--text-main) !important;
+            padding: 12px 16px !important;
             background-color: white !important;
         }
         
@@ -642,24 +645,15 @@ def main():
                         if existing_cols:
                             composition = history[existing_cols].sum()
                             comp_plot = pd.DataFrame([composition.values], columns=[bonus_cols_map[c] for c in existing_cols])
-                            with st.container(border=True):
-                                st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Bonus Composition</div>', unsafe_allow_html=True)
-                                st.bar_chart(comp_plot.T, color="#6366f1", use_container_width=True)
+                            st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Bonus Composition</div>', unsafe_allow_html=True)
+                            st.bar_chart(comp_plot.T, color="#6366f1", use_container_width=True)
                     
                     with c2:
-                        with st.container(border=True):
-                            st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Top Performing Stylists</div>', unsafe_allow_html=True)
-                            if 'stylist_name' in history.columns:
-                                top_stylists = history.groupby('stylist_name')['total_bonus'].sum().sort_values(ascending=False).reset_index().head(5)
-                                st.dataframe(
-                                    top_stylists, 
-                                    use_container_width=True, 
-                                    hide_index=True, 
-                                    column_config={
-                                        "stylist_name": "Stylist", 
-                                        "total_bonus": st.column_config.NumberColumn("Total Bonus", format="AED %.2f")
-                                    }
-                                )
+                        st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Top Performing Stylists</div>', unsafe_allow_html=True)
+                        if 'stylist_name' in history.columns:
+                            top_stylists = history.groupby('stylist_name')['total_bonus'].sum().sort_values(ascending=False).reset_index().head(5)
+                            top_stylists.columns = ["Stylist", "Total Bonus"]
+                            st.table(top_stylists.set_index("Stylist").style.format({"Total Bonus": "AED {:.2f}"}))
 
                     st.markdown('<div class="section-title">Recent Performance Logs</div>', unsafe_allow_html=True)
                     display_history = history.sort_values('calculation_date', ascending=False).head(10).reset_index(drop=True)
