@@ -139,6 +139,30 @@ def apply_custom_css():
             color-scheme: light !important;
         }
 
+        /* Harden file uploader and widgets to prevent dark mode bleed */
+        [data-testid="stFileUploadDropzone"], [data-testid="stFileUploader"], [data-testid="stUploadedFile"] {
+            background-color: #f8fafc !important;
+            border: 2px dashed var(--border) !important;
+            color: var(--text-main) !important;
+        }
+
+        .stTextInput input, .stNumberInput input, .stSelectbox [data-testid="stSelectbox"], .stTextArea textarea, .stMultiSelect div[role="listbox"] {
+            background-color: white !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border) !important;
+        }
+        
+        /* Dropdown Menu Items Visibility */
+        [data-testid="stVirtualDropdown"] div, [data-baseweb="popover"] div, [data-baseweb="menu"] div {
+            background-color: white !important;
+            color: var(--text-main) !important;
+        }
+
+        /* Prevent labels from becoming white in dark mode */
+        label, .stMarkdown, p, span, h1, h2, h3, h4, h5, h6 {
+            color: var(--text-main) !important;
+        }
+
         /* Force Sidebar Collapse Button Visibility */
         [data-testid="stSidebarCollapse"] {
             opacity: 1 !important;
@@ -159,37 +183,48 @@ def apply_custom_css():
             box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
         }
 
-        /* Harden widget backgrounds to prevent dark mode bleed */
-        .stTextInput input, .stNumberInput input, .stSelectbox select, .stTextArea textarea, .stMultiSelect div[role="listbox"] {
-            background-color: white !important;
-            color: var(--text-main) !important;
-            border: 1px solid var(--border) !important;
-        }
-
-        /* Prevent labels from becoming white in dark mode */
-        label, .stMarkdown, p, span, h1, h2, h3, h4, h5, h6 {
-            color: var(--text-main) !important;
-        }
-
-        /* Force chart backgrounds and labels */
-        [data-testid="stVegaLiteChart"], .vega-embed, canvas {
+        /* Force chart backgrounds and labels more aggressively */
+        [data-testid="stVegaLiteChart"], .vega-embed, canvas, [data-testid="stLineChart"], [data-testid="stBarChart"] {
             background-color: white !important;
             color: var(--text-main) !important;
         }
         
+        .vega-bind label, .vega-actions-wrapper, .vg-tooltip {
+            color: var(--text-main) !important;
+            background-color: white !important;
+        }
+
         .main {
             background-color: var(--bg-main) !important;
             background-image: none !important;
         }
 
-        /* Sidebar customization */
+        /* Sidebar navigation and menu look */
         [data-testid="stSidebar"] {
             background-color: #f8fafc !important;
             border-right: 1px solid var(--border) !important;
         }
 
-        [data-testid="stSidebar"] * {
+        [data-testid="stSidebarNav"] {
+            background-color: transparent !important;
+            padding-top: 2rem !important;
+        }
+        
+        [data-testid="stSidebarNav"] li {
+            background-color: white !important;
+            border-radius: 12px !important;
+            margin: 0.5rem 1rem !important;
+            border: 1px solid var(--border) !important;
+        }
+
+        [data-testid="stSidebarNav"] li [data-testid="stSidebarNavLink"] {
             color: var(--text-main) !important;
+            font-weight: 600 !important;
+        }
+
+        [data-testid="stSidebarNav"] li:hover {
+            border-color: var(--primary) !important;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08) !important;
         }
 
         [data-testid="stSidebar"] .stMarkdown h3 {
@@ -199,6 +234,43 @@ def apply_custom_css():
             margin-bottom: 1.5rem;
         }
         
+        /* Login & Form Hardening */
+        [data-testid="stForm"] {
+            background-color: white !important;
+            padding: 2.5rem !important;
+            border-radius: 1.25rem !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05) !important;
+        }
+
+        [data-testid="stForm"] button[kind="primary"], .stButton button[kind="primary"] {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%) !important;
+            color: white !important;
+            border: none !important;
+            padding: 0.75rem 2rem !important;
+            font-weight: 700 !important;
+            border-radius: 1rem !important;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
+        }
+        
+        /* Dataframes & Tables Hardening */
+        [data-testid="stDataFrame"], [data-testid="stTable"], .stDataFrame, .stTable {
+            background-color: white !important;
+            border-radius: 1rem !important;
+            border: 1px solid var(--border) !important;
+            overflow: hidden !important;
+        }
+
+        [data-testid="stTable"] thead th {
+            background-color: #f1f5f9 !important;
+            color: var(--text-main) !important;
+        }
+
+        [data-testid="stTable"] td {
+            background-color: white !important;
+            color: var(--text-main) !important;
+        }
+
         /* Premium Card Design */
         .card {
             background: white !important;
