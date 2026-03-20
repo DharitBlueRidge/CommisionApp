@@ -111,9 +111,7 @@ def apply_custom_css():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         
-        /* 0. Robust Light Mode Force (Fight System Dark Mode) */
         :root {
-            color-scheme: light !important;
             --primary: #6366f1;
             --primary-light: #818cf8;
             --secondary: #64748b;
@@ -124,119 +122,9 @@ def apply_custom_css():
             --text-main: #0f172a;
             --text-muted: #64748b;
             --border: #e2e8f0;
-            
-            /* Streamlit Internal Variables Override */
-            --st-background-color: #ffffff !important;
-            --st-secondary-background-color: #f8fafc !important;
-            --st-text-color: #0f172a !important;
-            --st-primary-color: #6366f1 !important;
         }
 
-        /* 1. Global Light Mode Enforcement (Crucial for Streamlit Cloud) */
-        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp {
-            background-color: white !important;
-            color: var(--text-main) !important;
-            font-family: 'Plus Jakarta Sans', sans-serif !important;
-            color-scheme: light !important;
-        }
-        
-        /* Stop the "Dark Mode" bleeding on specific components */
-        [data-testid="stVerticalBlock"], [data-testid="stHorizontalBlock"], .main, [data-testid="stExpander"] {
-            background-color: transparent !important;
-            color: var(--text-main) !important;
-        }
-
-        /* 2. Charts & Analytics Fix (Force White Backgrounds) */
-        [data-testid="stVegaLiteChart"], .vega-embed, canvas, [data-testid="stLineChart"], [data-testid="stBarChart"] {
-            background-color: white !important;
-            padding: 1rem !important;
-            border-radius: 1rem !important;
-            border: 1px solid var(--border) !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02) !important;
-        }
-        
-        /* Force chart labels and tooltips to be dark text on light bg */
-        .vega-bind label, .vega-actions-wrapper, .vg-tooltip {
-            color: var(--text-main) !important;
-            background-color: white !important;
-            border-color: var(--border) !important;
-        }
-        
-        .vega-actions { display: none !important; }
-
-        /* 3. Login Screen & Form Refinement */
-        [data-testid="stForm"] {
-            background-color: white !important;
-            padding: 2.5rem !important;
-            border-radius: 1.25rem !important;
-            border: 1px solid var(--border) !important;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.05) !important;
-            max-width: 500px !important;
-            margin: 2rem auto !important;
-        }
-        
-        [data-testid="stForm"] h2 {
-            color: var(--primary) !important;
-            font-weight: 800 !important;
-            text-align: center;
-        }
-
-        /* Login Button Visibility */
-        [data-testid="stForm"] button[kind="primary"] {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%) !important;
-            color: white !important;
-            width: 100% !important;
-            border: none !important;
-            padding: 0.75rem !important;
-            font-weight: 700 !important;
-            margin-top: 1rem !important;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
-            transition: all 0.2s ease !important;
-        }
-        
-        [data-testid="stForm"] button[kind="primary"]:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4) !important;
-        }
-
-        /* 4. Alert & Warning Boxes (Fix yellow box contrast) */
-        [data-testid="stNotification"] {
-            background-color: #fefce8 !important;
-            color: #854d0e !important;
-            border: 1px solid #fef08a !important;
-            border-radius: 0.75rem !important;
-        }
-
-        /* 5. Radio Buttons Fix (Professional Toggle Switches) */
-        [data-testid="stRadio"] div[role="radiogroup"] {
-            background-color: #f8fafc !important;
-            padding: 8px !important;
-            border-radius: 12px !important;
-            border: 1px solid var(--border) !important;
-            display: flex !important;
-            flex-direction: row !important;
-            gap: 1rem !important;
-        }
-        
-        [data-testid="stRadio"] label {
-            background-color: white !important;
-            padding: 6px 15px !important;
-            border-radius: 8px !important;
-            border: 1px solid var(--border) !important;
-            color: var(--text-main) !important;
-            font-size: 0.85rem !important;
-            font-weight: 600 !important;
-            cursor: pointer !important;
-            transition: all 0.2s ease !important;
-            margin: 0 !important;
-        }
-        
-        /* Hide the ugly default radio circle */
-        [data-testid="stRadio"] label div[data-baseweb="radio"] > div:first-child {
-            display: none !important;
-        }
-
-        /* 6. Sidebar Collapse Button Fix */
+        /* Force Sidebar Collapse Button Visibility */
         [data-testid="stSidebarCollapse"] {
             opacity: 1 !important;
             visibility: visible !important;
@@ -244,67 +132,273 @@ def apply_custom_css():
             background-color: white !important;
             border: 1px solid var(--border) !important;
             border-radius: 50% !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+            transition: all 0.2s ease !important;
             left: 10px !important;
             top: 10px !important;
-            z-index: 100 !important;
+        }
+        
+        [data-testid="stSidebarCollapse"]:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
         }
 
-        /* 7. Sidebar Navigation Fix */
+        /* Force Light Theme globally */
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp {
+            background-color: var(--bg-main) !important;
+            color: var(--text-main) !important;
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+        }
+        
+        .main {
+            background-color: var(--bg-main) !important;
+            background-image: none !important;
+        }
+
+        /* Sidebar customization */
         [data-testid="stSidebar"] {
             background-color: #f8fafc !important;
             border-right: 1px solid var(--border) !important;
         }
-        
+
+        [data-testid="stSidebar"] * {
+            color: var(--text-main) !important;
+        }
+
         [data-testid="stSidebar"] .stMarkdown h3 {
             color: var(--primary) !important;
             font-weight: 800;
-            margin-top: 1rem;
-        }
-
-        /* 8. Dataframes & Tables (Force White Theme) */
-        [data-testid="stDataFrame"], [data-testid="stTable"], .stDataFrame, .stTable {
-            background-color: white !important;
-            border-radius: 0.75rem !important;
-            border: 1px solid var(--border) !important;
-            color: var(--text-main) !important;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
         }
         
-        /* Fix the actual table cells in dataframes */
-        [data-testid="stDataFrame"] td, [data-testid="stTable"] td {
-            color: var(--text-main) !important;
-            background-color: white !important;
-        }
-
-        /* 9. Premium Card Design */
+        /* Premium Card Design */
         .card {
             background: white !important;
-            padding: 1.5rem;
-            border-radius: 1.25rem;
+            padding: 1.25rem;
+            border-radius: 1rem;
             border: 1px solid var(--border) !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06) !important;
+            border-color: var(--primary-light) !important;
         }
         
         .card-header {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 700;
-            color: var(--text-muted) !important;
+            color: var(--secondary) !important;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
         }
         
         .card-value {
-            font-size: 1.85rem;
+            font-size: 1.75rem;
             font-weight: 800;
             color: var(--text-main) !important;
-            letter-spacing: -0.02em;
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.01em;
+        }
+        
+        /* Step Progress Bar Enhancement */
+        .step-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2.5rem;
+            padding: 0 3rem;
+            position: relative;
+        }
+        
+        .step-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+            z-index: 2;
+        }
+        
+        .step-circle {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            background: white !important;
+            border: 3px solid var(--border) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--text-muted) !important;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .step-item.active .step-circle {
+            background: var(--primary) !important;
+            border-color: var(--primary) !important;
+            color: white !important;
+            transform: scale(1.1);
+            box-shadow: 0 8px 15px rgba(99, 102, 241, 0.3) !important;
+        }
+        
+        .step-item.completed .step-circle {
+            background: var(--accent) !important;
+            border-color: var(--accent) !important;
+            color: white !important;
         }
 
-        /* 10. Hide Default Elements */
-        #MainMenu, footer, [data-testid="stHeader"], [data-testid="stToolbar"] {
-            visibility: hidden !important;
-            display: none !important;
+        .step-line-bg {
+            position: absolute;
+            top: 1.75rem;
+            left: 15%;
+            width: 70%;
+            height: 4px;
+            background: var(--border);
+            z-index: 1;
+            border-radius: 2px;
+        }
+        
+        /* Typography & Headers */
+        .page-header {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #1e293b !important;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+        
+        .sub-header {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-muted) !important;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main) !important;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Buttons & Inputs */
+        .stButton>button {
+            border-radius: 1rem !important;
+            padding: 0.75rem 2rem !important;
+            font-weight: 700 !important;
+            font-size: 1rem !important;
+            border: 1px solid var(--border) !important;
+            background: white !important;
+            color: var(--text-main) !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .stButton>button[kind="primary"] {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%) !important;
+            color: white !important;
+            border: none !important;
+        }
+        
+        /* Modern Dataframe Enhancement */
+        [data-testid="stDataFrame"], .stDataFrame {
+            border-radius: 1rem !important;
+            border: 1px solid var(--border) !important;
+            background: white !important;
+            padding: 8px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+
+        [data-testid="stTable"] thead th {
+            background-color: #f8fafc !important;
+            color: var(--secondary) !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            border: none !important;
+            padding: 12px !important;
+        }
+
+        [data-testid="stTable"] td {
+            border-bottom: 1px solid #f1f5f9 !important;
+            padding: 14px 16px !important;
+            color: var(--text-main) !important;
+            background-color: white !important;
+        }
+        
+        /* Persistent Premium Header Enhancement */
+        .global-header {
+            background: white !important;
+            padding: 1.25rem 2.5rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border) !important;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04) !important;
+        }
+        
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary) !important;
+            margin: 0;
+            letter-spacing: -0.01em;
+        }
+
+        /* Hide default Streamlit elements */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        [data-testid="stHeader"] {display: none !important;}
+        [data-testid="stToolbar"] {display: none !important;}
+        [data-testid="stDecoration"] {display: none !important;}
+
+        /* Status Badges */
+        .badge {
+            padding: 0.4rem 1rem;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .badge-admin { background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2); }
+        .badge-stylist { background: rgba(16, 185, 129, 0.1); color: var(--accent); border: 1px solid rgba(16, 185, 129, 0.2); }
+
+        /* Total Bonus Highlight Enhancement */
+        .bonus-highlight-box {
+            background: linear-gradient(to right, #ffffff, #f5f7ff);
+            padding: 1.5rem 2rem;
+            border-radius: 1rem;
+            border: 2px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.5rem;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.08);
+        }
+
+        /* Fix for chart backgrounds */
+        [data-testid="stVegaLiteChart"] {
+            background-color: white !important;
+            padding: 10px !important;
+            border-radius: 0.75rem !important;
+            border: 1px solid var(--border) !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -399,7 +493,7 @@ def main():
                 menu_icon="cast",
                 default_index=0,
                 styles={
-                    "container": {"padding": "0!important", "background-color": "#f8fafc", "border-radius": "0.75rem"},
+                    "container": {"padding": "0!important", "background-color": "white", "border-radius": "0.75rem"},
                     "icon": {"color": "#6366f1", "font-size": "1.1rem"}, 
                     "nav-link": {
                         "font-size": "0.95rem", 
@@ -488,32 +582,19 @@ def main():
                         if existing_cols:
                             composition = history[existing_cols].sum()
                             comp_plot = pd.DataFrame([composition.values], columns=[bonus_cols_map[c] for c in existing_cols])
-                            st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Bonus Composition</div>', unsafe_allow_html=True)
-                            st.bar_chart(comp_plot.T, color="#6366f1", use_container_width=True)
+                            with st.container(border=True):
+                                st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Bonus Composition</div>', unsafe_allow_html=True)
+                                st.bar_chart(comp_plot.T, color="#6366f1", use_container_width=True)
                     
                     with c2:
-                        st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Top Performing Stylists</div>', unsafe_allow_html=True)
-                        if 'stylist_name' in history.columns:
-                            top_stylists = history.groupby('stylist_name')['total_bonus'].sum().sort_values(ascending=False).reset_index().head(5)
-                            top_stylists.columns = ["Stylist", "Total Bonus"]
-                            st.table(top_stylists.set_index("Stylist").style.format({"Total Bonus": "AED {:.2f}"}))
+                        with st.container(border=True):
+                            st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Top Performing Stylists</div>', unsafe_allow_html=True)
+                            if 'stylist_name' in history.columns:
+                                top_stylists = history.groupby('stylist_name')['total_bonus'].sum().sort_values(ascending=False).reset_index().head(5)
+                                st.dataframe(top_stylists, use_container_width=True, hide_index=True, column_config={"stylist_name": "Stylist", "total_bonus": st.column_config.NumberColumn("Total Bonus", format="AED %.2f")})
 
                     st.markdown('<div class="section-title">Recent Performance Logs</div>', unsafe_allow_html=True)
-                    display_history = history.sort_values('calculation_date', ascending=False).head(10).reset_index(drop=True)
-                    # Filter only relevant columns to keep UI clean
-                    cols_to_show = ['calculation_date', 'stylist_name', 'period', 'monthly_sales', 'total_bonus']
-                    st.dataframe(
-                        display_history[cols_to_show], 
-                        use_container_width=True, 
-                        hide_index=True, 
-                        column_config={
-                            "calculation_date": st.column_config.DatetimeColumn("Run Date", format="DD MMM YYYY"), 
-                            "stylist_name": "Stylist",
-                            "period": "Period",
-                            "monthly_sales": st.column_config.NumberColumn("Monthly Sales", format="AED %.2f"), 
-                            "total_bonus": st.column_config.NumberColumn("Total Bonus", format="AED %.2f")
-                        }
-                    )
+                    st.dataframe(history.sort_values('calculation_date', ascending=False).head(10), use_container_width=True, hide_index=True, column_config={"calculation_date": st.column_config.DatetimeColumn("Run Date", format="DD MMM YYYY"), "monthly_sales": st.column_config.NumberColumn("Monthly Sales", format="AED %.2f"), "total_bonus": st.column_config.NumberColumn("Total Bonus", format="AED %.2f")})
             else:
                 st.info("No historical data found.")
 
@@ -665,18 +746,7 @@ def main():
                             st.success(f"Report Archived!")
                     
                     st.markdown('<hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border);">', unsafe_allow_html=True)
-                    active_tab = option_menu(
-                        menu_title=None, 
-                        options=["Overview"] + stylists, 
-                        icons=["grid-3x3-gap"] + ["person"] * len(stylists), 
-                        orientation="horizontal", 
-                        styles={
-                            "container": {"padding": "0.2rem!important", "background-color": "#f8fafc", "border-radius": "0.75rem", "border": "1px solid #e2e8f0"}, 
-                            "icon": {"color": "var(--primary)", "font-size": "0.9rem"}, 
-                            "nav-link": {"font-size": "0.85rem", "text-align": "center", "margin":"0.1rem", "border-radius": "0.5rem", "color": "var(--text-muted)", "font-weight": "600", "transition": "all 0.2s ease"}, 
-                            "nav-link-selected": {"background-color": "white", "color": "var(--primary)", "font-weight": "700", "border": "1px solid #e2e8f0"}
-                        }
-                    )
+                    active_tab = option_menu(menu_title=None, options=["Overview"] + stylists, icons=["grid-3x3-gap"] + ["person"] * len(stylists), orientation="horizontal", styles={"container": {"padding": "0.2rem!important", "background-color": "#f8fafc", "border-radius": "0.75rem", "border": "1px solid #e2e8f0"}, "icon": {"color": "var(--primary)", "font-size": "0.9rem"}, "nav-link": {"font-size": "0.85rem", "text-align": "center", "margin":"0.1rem", "border-radius": "0.5rem", "color": "var(--text-muted)", "font-weight": "600", "transition": "all 0.2s ease"}, "nav-link-selected": {"background-color": "white", "color": "var(--primary)", "font-weight": "700", "border": "1px solid #e2e8f0"}})
                     
                     if active_tab == "Overview":
                         c1, c2 = st.columns(2)
@@ -721,47 +791,7 @@ def main():
                                                     <span style="color: var(--text-main); font-weight: 600;">AED {s_res['Review Bonus']:,.0f}</span>
                                                 </div>
                                             </div>
-                                         """, unsafe_allow_html=True)
-                        
-                        # --- NEW: Salon Aggregate Breakdown at the bottom of Overview ---
-                        st.markdown('<div style="margin-top: 2rem;"></div>', unsafe_allow_html=True)
-                        with st.container(border=True):
-                            st.markdown(f"""
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-                                    <div style="font-weight: 800; color: var(--primary); font-size: 1.25rem;">Salon Aggregate Breakdown</div>
-                                    <div class="badge badge-admin" style="font-size: 0.7rem; padding: 0.5rem 1rem;">ALL STYLISTS TOTAL</div>
-                                </div>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                                    <div style="padding: 1.25rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
-                                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Service Commission</div>
-                                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">AED {sum(r['Service Commission'] for r in results):,.2f}</div>
-                                    </div>
-                                    <div style="padding: 1.25rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
-                                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Product Commission</div>
-                                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">AED {sum(r['Product Commission'] for r in results):,.2f}</div>
-                                    </div>
-                                    <div style="padding: 1.25rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
-                                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Daily Target Bonuses</div>
-                                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">AED {sum(r['Daily Target Bonus'] for r in results):,.2f}</div>
-                                    </div>
-                                    <div style="padding: 1.25rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
-                                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Monthly Stretch Bonuses</div>
-                                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">AED {sum(r['Stretch Bonus'] for r in results):,.2f}</div>
-                                    </div>
-                                    <div style="padding: 1.25rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
-                                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Referral Bonuses</div>
-                                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">AED {sum(r['Referral Bonus'] for r in results):,.2f}</div>
-                                    </div>
-                                    <div style="padding: 1.25rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
-                                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Review Bonuses</div>
-                                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">AED {sum(r['Review Bonus'] for r in results):,.2f}</div>
-                                    </div>
-                                </div>
-                                <div class="bonus-highlight-box" style="margin-top: 1.5rem; background: linear-gradient(to right, #6366f1, #818cf8); border: none;">
-                                    <h4 style="margin:0; font-weight: 800; color: white;">Total Salon Payout</h4> 
-                                    <h3 style="color: white; margin:0; font-weight: 900;">AED {sum(r['Total Bonus'] for r in results):,.2f}</h3>
-                                </div>
-                             """, unsafe_allow_html=True)
+                                        """, unsafe_allow_html=True)
                     else:
                         s_name = active_tab; s_res = next(r for r in results if r['Stylist'] == s_name)
                         st.markdown(f'<div class="section-title">Profile: {s_name}</div>', unsafe_allow_html=True)
