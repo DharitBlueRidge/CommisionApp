@@ -3,3 +3,4 @@ pandas
 openpyxl
 streamlit-authenticator
 requests
+streamlit-option-menu
