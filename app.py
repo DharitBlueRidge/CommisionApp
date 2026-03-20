@@ -143,7 +143,7 @@ def apply_custom_css():
             box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
         }
 
-        /* Force Light Theme globally */
+        /* Force Light Theme globally and override Streamlit Cloud defaults */
         html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp {
             background-color: var(--bg-main) !important;
             color: var(--text-main) !important;
@@ -155,14 +155,32 @@ def apply_custom_css():
             background-image: none !important;
         }
 
-        /* Sidebar customization */
+        /* Login Screen Styling Fixes */
+        .stForm, [data-testid="stForm"] {
+            background-color: white !important;
+            padding: 2rem !important;
+            border-radius: 1rem !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05) !important;
+        }
+        
+        [data-testid="stForm"] h2 {
+            color: var(--primary) !important;
+            font-weight: 800 !important;
+        }
+
+        /* Sidebar customization and Artifact Fix */
         [data-testid="stSidebar"] {
             background-color: #f8fafc !important;
             border-right: 1px solid var(--border) !important;
         }
 
-        [data-testid="stSidebar"] * {
-            color: var(--text-main) !important;
+        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+            background-color: transparent !important;
+        }
+
+        [data-testid="stSidebarNav"] {
+            background-color: transparent !important;
         }
 
         [data-testid="stSidebar"] .stMarkdown h3 {
@@ -296,7 +314,7 @@ def apply_custom_css():
             gap: 0.5rem;
         }
 
-        /* Buttons & Inputs */
+        /* Buttons & Inputs Visibility Fix */
         .stButton>button {
             border-radius: 1rem !important;
             padding: 0.75rem 2rem !important;
@@ -313,17 +331,40 @@ def apply_custom_css():
             color: white !important;
             border: none !important;
         }
-        
-        /* Modern Dataframe Enhancement */
-        [data-testid="stDataFrame"], .stDataFrame {
-            border-radius: 1rem !important;
+
+        /* Input fields and labels visibility */
+        .stTextInput input, .stNumberInput input, .stSelectbox select {
+            background-color: #f8fafc !important;
+            color: var(--text-main) !important;
             border: 1px solid var(--border) !important;
-            background: white !important;
-            padding: 8px !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+            border-radius: 0.75rem !important;
+            padding: 0.75rem 1rem !important;
         }
 
-        [data-testid="stTable"] thead th {
+        label[data-testid="stWidgetLabel"] {
+            color: var(--text-main) !important;
+            font-weight: 600 !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Modern Dataframe and Table Enhancement */
+        [data-testid="stDataFrame"], [data-testid="stTable"] {
+            background-color: transparent !important;
+        }
+
+        /* Target the actual inner table for borders without clipping headers */
+        [data-testid="stDataFrame"] [data-testid="stWidgetLabel"], 
+        [data-testid="stTable"] [data-testid="stWidgetLabel"] {
+            color: var(--primary) !important;
+            font-weight: 700 !important;
+        }
+
+        /* Prevent double borders and clipping */
+        [data-testid="stDataFrame"] > div:first-child {
+            border: none !important;
+        }
+
+        [data-testid="stTable"] thead th, [data-testid="stDataFrame"] thead th {
             background-color: #f8fafc !important;
             color: var(--secondary) !important;
             font-weight: 700 !important;
@@ -333,7 +374,7 @@ def apply_custom_css():
             padding: 12px !important;
         }
 
-        [data-testid="stTable"] td {
+        [data-testid="stTable"] td, [data-testid="stDataFrame"] td {
             border-bottom: 1px solid #f1f5f9 !important;
             padding: 14px 16px !important;
             color: var(--text-main) !important;
@@ -361,10 +402,11 @@ def apply_custom_css():
             letter-spacing: -0.01em;
         }
 
-        /* Radio Button Fix */
+        /* Radio Button Visibility Fix */
         [data-testid="stRadio"] label {
             color: var(--text-main) !important;
             font-weight: 600 !important;
+            display: block !important;
         }
         
         [data-testid="stRadio"] div[role="radiogroup"] {
@@ -372,6 +414,8 @@ def apply_custom_css():
             padding: 10px 20px !important;
             border-radius: 12px !important;
             border: 1px solid var(--border) !important;
+            display: flex !important;
+            gap: 1.5rem !important;
         }
 
         /* Hide default Streamlit elements */
@@ -406,8 +450,8 @@ def apply_custom_css():
             box-shadow: 0 8px 20px rgba(99, 102, 241, 0.08);
         }
 
-        /* Fix for chart backgrounds */
-        [data-testid="stVegaLiteChart"], .vega-embed {
+        /* Global Chart Overrides for Streamlit Cloud */
+        [data-testid="stVegaLiteChart"], .vega-embed, canvas {
             background-color: white !important;
             padding: 15px !important;
             border-radius: 1rem !important;
@@ -607,10 +651,32 @@ def main():
                             st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Top Performing Stylists</div>', unsafe_allow_html=True)
                             if 'stylist_name' in history.columns:
                                 top_stylists = history.groupby('stylist_name')['total_bonus'].sum().sort_values(ascending=False).reset_index().head(5)
-                                st.dataframe(top_stylists, use_container_width=True, hide_index=True, column_config={"stylist_name": "Stylist", "total_bonus": st.column_config.NumberColumn("Total Bonus", format="AED %.2f")})
+                                st.dataframe(
+                                    top_stylists, 
+                                    use_container_width=True, 
+                                    hide_index=True, 
+                                    column_config={
+                                        "stylist_name": "Stylist", 
+                                        "total_bonus": st.column_config.NumberColumn("Total Bonus", format="AED %.2f")
+                                    }
+                                )
 
                     st.markdown('<div class="section-title">Recent Performance Logs</div>', unsafe_allow_html=True)
-                    st.dataframe(history.sort_values('calculation_date', ascending=False).head(10), use_container_width=True, hide_index=True, column_config={"calculation_date": st.column_config.DatetimeColumn("Run Date", format="DD MMM YYYY"), "monthly_sales": st.column_config.NumberColumn("Monthly Sales", format="AED %.2f"), "total_bonus": st.column_config.NumberColumn("Total Bonus", format="AED %.2f")})
+                    display_history = history.sort_values('calculation_date', ascending=False).head(10).reset_index(drop=True)
+                    # Filter only relevant columns to keep UI clean
+                    cols_to_show = ['calculation_date', 'stylist_name', 'period', 'monthly_sales', 'total_bonus']
+                    st.dataframe(
+                        display_history[cols_to_show], 
+                        use_container_width=True, 
+                        hide_index=True, 
+                        column_config={
+                            "calculation_date": st.column_config.DatetimeColumn("Run Date", format="DD MMM YYYY"), 
+                            "stylist_name": "Stylist",
+                            "period": "Period",
+                            "monthly_sales": st.column_config.NumberColumn("Monthly Sales", format="AED %.2f"), 
+                            "total_bonus": st.column_config.NumberColumn("Total Bonus", format="AED %.2f")
+                        }
+                    )
             else:
                 st.info("No historical data found.")
 
