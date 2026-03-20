@@ -361,6 +361,19 @@ def apply_custom_css():
             letter-spacing: -0.01em;
         }
 
+        /* Radio Button Fix */
+        [data-testid="stRadio"] label {
+            color: var(--text-main) !important;
+            font-weight: 600 !important;
+        }
+        
+        [data-testid="stRadio"] div[role="radiogroup"] {
+            background-color: #f8fafc !important;
+            padding: 10px 20px !important;
+            border-radius: 12px !important;
+            border: 1px solid var(--border) !important;
+        }
+
         /* Hide default Streamlit elements */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
@@ -394,12 +407,15 @@ def apply_custom_css():
         }
 
         /* Fix for chart backgrounds */
-        [data-testid="stVegaLiteChart"] {
+        [data-testid="stVegaLiteChart"], .vega-embed {
             background-color: white !important;
-            padding: 10px !important;
-            border-radius: 0.75rem !important;
+            padding: 15px !important;
+            border-radius: 1rem !important;
             border: 1px solid var(--border) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02) !important;
         }
+        
+        .vega-actions { display: none !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -493,7 +509,7 @@ def main():
                 menu_icon="cast",
                 default_index=0,
                 styles={
-                    "container": {"padding": "0!important", "background-color": "white", "border-radius": "0.75rem"},
+                    "container": {"padding": "0!important", "background-color": "#f8fafc", "border-radius": "0.75rem"},
                     "icon": {"color": "#6366f1", "font-size": "1.1rem"}, 
                     "nav-link": {
                         "font-size": "0.95rem", 
@@ -746,7 +762,18 @@ def main():
                             st.success(f"Report Archived!")
                     
                     st.markdown('<hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border);">', unsafe_allow_html=True)
-                    active_tab = option_menu(menu_title=None, options=["Overview"] + stylists, icons=["grid-3x3-gap"] + ["person"] * len(stylists), orientation="horizontal", styles={"container": {"padding": "0.2rem!important", "background-color": "#f8fafc", "border-radius": "0.75rem", "border": "1px solid #e2e8f0"}, "icon": {"color": "var(--primary)", "font-size": "0.9rem"}, "nav-link": {"font-size": "0.85rem", "text-align": "center", "margin":"0.1rem", "border-radius": "0.5rem", "color": "var(--text-muted)", "font-weight": "600", "transition": "all 0.2s ease"}, "nav-link-selected": {"background-color": "white", "color": "var(--primary)", "font-weight": "700", "border": "1px solid #e2e8f0"}})
+                    active_tab = option_menu(
+                        menu_title=None, 
+                        options=["Overview"] + stylists, 
+                        icons=["grid-3x3-gap"] + ["person"] * len(stylists), 
+                        orientation="horizontal", 
+                        styles={
+                            "container": {"padding": "0.2rem!important", "background-color": "#f8fafc", "border-radius": "0.75rem", "border": "1px solid #e2e8f0"}, 
+                            "icon": {"color": "var(--primary)", "font-size": "0.9rem"}, 
+                            "nav-link": {"font-size": "0.85rem", "text-align": "center", "margin":"0.1rem", "border-radius": "0.5rem", "color": "var(--text-muted)", "font-weight": "600", "transition": "all 0.2s ease"}, 
+                            "nav-link-selected": {"background-color": "white", "color": "var(--primary)", "font-weight": "700", "border": "1px solid #e2e8f0"}
+                        }
+                    )
                     
                     if active_tab == "Overview":
                         c1, c2 = st.columns(2)
@@ -791,7 +818,47 @@ def main():
                                                     <span style="color: var(--text-main); font-weight: 600;">AED {s_res['Review Bonus']:,.0f}</span>
                                                 </div>
                                             </div>
-                                        """, unsafe_allow_html=True)
+                                         """, unsafe_allow_html=True)
+                        
+                        # --- NEW: Salon Aggregate Breakdown at the bottom of Overview ---
+                        st.markdown('<div style="margin-top: 2rem;"></div>', unsafe_allow_html=True)
+                        with st.container(border=True):
+                            st.markdown(f"""
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                                    <div style="font-weight: 800; color: var(--primary); font-size: 1.25rem;">Salon Aggregate Breakdown</div>
+                                    <div class="badge badge-admin" style="font-size: 0.7rem; padding: 0.5rem 1rem;">ALL STYLISTS TOTAL</div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                                    <div style="padding: 1.25rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Service Commission</div>
+                                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">AED {sum(r['Service Commission'] for r in results):,.2f}</div>
+                                    </div>
+                                    <div style="padding: 1.25rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Product Commission</div>
+                                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">AED {sum(r['Product Commission'] for r in results):,.2f}</div>
+                                    </div>
+                                    <div style="padding: 1.25rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Daily Target Bonuses</div>
+                                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">AED {sum(r['Daily Target Bonus'] for r in results):,.2f}</div>
+                                    </div>
+                                    <div style="padding: 1.25rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Monthly Stretch Bonuses</div>
+                                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">AED {sum(r['Stretch Bonus'] for r in results):,.2f}</div>
+                                    </div>
+                                    <div style="padding: 1.25rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Referral Bonuses</div>
+                                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">AED {sum(r['Referral Bonus'] for r in results):,.2f}</div>
+                                    </div>
+                                    <div style="padding: 1.25rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Review Bonuses</div>
+                                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">AED {sum(r['Review Bonus'] for r in results):,.2f}</div>
+                                    </div>
+                                </div>
+                                <div class="bonus-highlight-box" style="margin-top: 1.5rem; background: linear-gradient(to right, #6366f1, #818cf8); border: none;">
+                                    <h4 style="margin:0; font-weight: 800; color: white;">Total Salon Payout</h4> 
+                                    <h3 style="color: white; margin:0; font-weight: 900;">AED {sum(r['Total Bonus'] for r in results):,.2f}</h3>
+                                </div>
+                             """, unsafe_allow_html=True)
                     else:
                         s_name = active_tab; s_res = next(r for r in results if r['Stylist'] == s_name)
                         st.markdown(f'<div class="section-title">Profile: {s_name}</div>', unsafe_allow_html=True)
