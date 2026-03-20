@@ -124,7 +124,99 @@ def apply_custom_css():
             --border: #e2e8f0;
         }
 
-        /* Force Sidebar Collapse Button Visibility */
+        /* 1. Global Light Mode Enforcement (Crucial for Streamlit Cloud) */
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp {
+            background-color: white !important;
+            color: var(--text-main) !important;
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+        }
+        
+        [data-testid="stVerticalBlock"], [data-testid="stHorizontalBlock"], .main {
+            background-color: transparent !important;
+        }
+
+        /* 2. Charts & Analytics Fix (Force White Backgrounds) */
+        [data-testid="stVegaLiteChart"], .vega-embed, canvas, [data-testid="stLineChart"], [data-testid="stBarChart"] {
+            background-color: white !important;
+            padding: 1rem !important;
+            border-radius: 1rem !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02) !important;
+        }
+        
+        /* Force chart labels to be dark */
+        .vega-bind label, .vega-actions-wrapper {
+            color: var(--text-main) !important;
+        }
+        
+        .vega-actions { display: none !important; }
+
+        /* 3. Login Screen & Form Refinement */
+        [data-testid="stForm"] {
+            background-color: white !important;
+            padding: 2.5rem !important;
+            border-radius: 1.25rem !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05) !important;
+            max-width: 500px !important;
+            margin: 2rem auto !important;
+        }
+        
+        /* Login Button Visibility */
+        [data-testid="stForm"] button[kind="primary"] {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%) !important;
+            color: white !important;
+            width: 100% !important;
+            border: none !important;
+            padding: 0.75rem !important;
+            font-weight: 700 !important;
+            margin-top: 1rem !important;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        [data-testid="stForm"] button[kind="primary"]:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4) !important;
+        }
+
+        /* 4. Alert & Warning Boxes (Fix yellow box contrast) */
+        [data-testid="stNotification"] {
+            background-color: #fefce8 !important;
+            color: #854d0e !important;
+            border: 1px solid #fef08a !important;
+            border-radius: 0.75rem !important;
+        }
+
+        /* 5. Radio Buttons Fix (Stop them looking like big dots) */
+        [data-testid="stRadio"] div[role="radiogroup"] {
+            background-color: #f8fafc !important;
+            padding: 8px !important;
+            border-radius: 12px !important;
+            border: 1px solid var(--border) !important;
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 1rem !important;
+        }
+        
+        [data-testid="stRadio"] label {
+            background-color: white !important;
+            padding: 6px 15px !important;
+            border-radius: 8px !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text-main) !important;
+            font-size: 0.85rem !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            margin: 0 !important;
+        }
+
+        [data-testid="stRadio"] label[data-baseweb="radio"] > div:first-child {
+            display: none !important; /* Hide the default radio circle */
+        }
+
+        /* 6. Sidebar Collapse Button Fix */
         [data-testid="stSidebarCollapse"] {
             opacity: 1 !important;
             visibility: visible !important;
@@ -132,337 +224,59 @@ def apply_custom_css():
             background-color: white !important;
             border: 1px solid var(--border) !important;
             border-radius: 50% !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-            transition: all 0.2s ease !important;
             left: 10px !important;
             top: 10px !important;
-        }
-        
-        [data-testid="stSidebarCollapse"]:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+            z-index: 100 !important;
         }
 
-        /* Force Light Theme globally and override Streamlit Cloud defaults */
-        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp {
-            background-color: white !important;
-            color: var(--text-main) !important;
-            font-family: 'Plus Jakarta Sans', sans-serif !important;
-        }
-        
-        /* Force specific background for all main containers */
-        [data-testid="stVerticalBlock"], [data-testid="stHorizontalBlock"], [data-testid="stExpander"] {
-            background-color: transparent !important;
-        }
-
-        .main {
-            background-color: white !important;
-            background-image: none !important;
-        }
-
-        /* Login Screen Styling Fixes */
-        .stForm, [data-testid="stForm"] {
-            background-color: white !important;
-            padding: 2rem !important;
-            border-radius: 1rem !important;
-            border: 1px solid var(--border) !important;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05) !important;
-        }
-        
-        [data-testid="stForm"] h2 {
-            color: var(--primary) !important;
-            font-weight: 800 !important;
-        }
-
-        /* Sidebar customization and Artifact Fix */
+        /* 7. Sidebar Navigation Fix */
         [data-testid="stSidebar"] {
             background-color: #f8fafc !important;
             border-right: 1px solid var(--border) !important;
         }
-
-        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-            background-color: transparent !important;
-        }
-
-        [data-testid="stSidebarNav"] {
-            background-color: transparent !important;
-        }
-
-        [data-testid="stSidebar"] .stMarkdown h3 {
-            color: var(--primary) !important;
-            font-weight: 800;
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
         
-        /* Premium Card Design */
+        .option-menu-container {
+            background-color: transparent !important;
+        }
+
+        /* 8. Dataframes & Tables */
+        [data-testid="stDataFrame"], [data-testid="stTable"] {
+            background-color: white !important;
+            border-radius: 0.75rem !important;
+            border: 1px solid var(--border) !important;
+        }
+
+        /* 9. Premium Card Design */
         .card {
             background: white !important;
-            padding: 1.25rem;
-            border-radius: 1rem;
+            padding: 1.5rem;
+            border-radius: 1.25rem;
             border: 1px solid var(--border) !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
-            margin-bottom: 0.75rem;
-            transition: all 0.3s ease;
-        }
-        
-        .card:hover {
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06) !important;
-            border-color: var(--primary-light) !important;
+            margin-bottom: 1rem;
         }
         
         .card-header {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 700;
-            color: var(--secondary) !important;
+            color: var(--text-muted) !important;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
         }
         
         .card-value {
-            font-size: 1.75rem;
+            font-size: 1.85rem;
             font-weight: 800;
             color: var(--text-main) !important;
-            margin-bottom: 0.25rem;
-            letter-spacing: -0.01em;
-        }
-        
-        /* Step Progress Bar Enhancement */
-        .step-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 2.5rem;
-            padding: 0 3rem;
-            position: relative;
-        }
-        
-        .step-item {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.75rem;
-            flex: 1;
-            z-index: 2;
-        }
-        
-        .step-circle {
-            width: 3.5rem;
-            height: 3.5rem;
-            border-radius: 50%;
-            background: white !important;
-            border: 3px solid var(--border) !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 1.1rem;
-            color: var(--text-muted) !important;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .step-item.active .step-circle {
-            background: var(--primary) !important;
-            border-color: var(--primary) !important;
-            color: white !important;
-            transform: scale(1.1);
-            box-shadow: 0 8px 15px rgba(99, 102, 241, 0.3) !important;
-        }
-        
-        .step-item.completed .step-circle {
-            background: var(--accent) !important;
-            border-color: var(--accent) !important;
-            color: white !important;
-        }
-
-        .step-line-bg {
-            position: absolute;
-            top: 1.75rem;
-            left: 15%;
-            width: 70%;
-            height: 4px;
-            background: var(--border);
-            z-index: 1;
-            border-radius: 2px;
-        }
-        
-        /* Typography & Headers */
-        .page-header {
-            font-size: 2.25rem;
-            font-weight: 800;
-            color: #1e293b !important;
-            margin-bottom: 0.5rem;
             letter-spacing: -0.02em;
         }
-        
-        .sub-header {
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: var(--text-muted) !important;
-            margin-bottom: 2rem;
-        }
 
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-main) !important;
-            margin-top: 1.5rem;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+        /* 10. Hide Default Elements */
+        #MainMenu, footer, [data-testid="stHeader"], [data-testid="stToolbar"] {
+            visibility: hidden !important;
+            display: none !important;
         }
-
-        /* Buttons & Inputs Visibility Fix */
-        .stButton>button {
-            border-radius: 1rem !important;
-            padding: 0.75rem 2rem !important;
-            font-weight: 700 !important;
-            font-size: 1rem !important;
-            border: 1px solid var(--border) !important;
-            background: white !important;
-            color: var(--text-main) !important;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-        }
-        
-        .stButton>button[kind="primary"] {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%) !important;
-            color: white !important;
-            border: none !important;
-        }
-
-        /* Input fields and labels visibility */
-        .stTextInput input, .stNumberInput input, .stSelectbox select {
-            background-color: #f8fafc !important;
-            color: var(--text-main) !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 0.75rem !important;
-            padding: 0.75rem 1rem !important;
-        }
-
-        label[data-testid="stWidgetLabel"] {
-            color: var(--text-main) !important;
-            font-weight: 600 !important;
-            margin-bottom: 0.5rem !important;
-        }
-        
-        /* Modern Dataframe and Table Enhancement */
-        [data-testid="stDataFrame"], [data-testid="stTable"] {
-            background-color: transparent !important;
-            border: none !important;
-        }
-
-        /* Clean up the inner container that Streamlit adds */
-        [data-testid="stDataFrame"] > div:first-child, 
-        [data-testid="stTable"] > div:first-child {
-            border: 1px solid var(--border) !important;
-            border-radius: 0.75rem !important;
-            background-color: white !important;
-            overflow: hidden !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02) !important;
-        }
-
-        /* Remove the weird artifact borders on headers */
-        [data-testid="stDataFrame"] thead th, 
-        [data-testid="stTable"] thead th {
-            background-color: #f8fafc !important;
-            border: none !important;
-            border-bottom: 1px solid var(--border) !important;
-            padding: 12px 16px !important;
-        }
-
-        /* Stylize the data cells */
-        [data-testid="stTable"] td {
-            border-bottom: 1px solid #f1f5f9 !important;
-            padding: 12px 16px !important;
-            background-color: white !important;
-        }
-        
-        /* Persistent Premium Header Enhancement */
-        .global-header {
-            background: white !important;
-            padding: 1.25rem 2.5rem;
-            border-radius: 1rem;
-            border: 1px solid var(--border) !important;
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04) !important;
-        }
-        
-        .header-title {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--primary) !important;
-            margin: 0;
-            letter-spacing: -0.01em;
-        }
-
-        /* Radio Button Visibility Fix */
-        [data-testid="stRadio"] label {
-            color: var(--text-main) !important;
-            font-weight: 600 !important;
-            display: block !important;
-        }
-        
-        [data-testid="stRadio"] div[role="radiogroup"] {
-            background-color: #f8fafc !important;
-            padding: 10px 20px !important;
-            border-radius: 12px !important;
-            border: 1px solid var(--border) !important;
-            display: flex !important;
-            gap: 1.5rem !important;
-        }
-
-        /* Hide default Streamlit elements */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        [data-testid="stHeader"] {display: none !important;}
-        [data-testid="stToolbar"] {display: none !important;}
-        [data-testid="stDecoration"] {display: none !important;}
-
-        /* Status Badges */
-        .badge {
-            padding: 0.4rem 1rem;
-            border-radius: 8px;
-            font-size: 0.7rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .badge-admin { background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2); }
-        .badge-stylist { background: rgba(16, 185, 129, 0.1); color: var(--accent); border: 1px solid rgba(16, 185, 129, 0.2); }
-
-        /* Total Bonus Highlight Enhancement */
-        .bonus-highlight-box {
-            background: linear-gradient(to right, #ffffff, #f5f7ff);
-            padding: 1.5rem 2rem;
-            border-radius: 1rem;
-            border: 2px solid var(--primary);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 1.5rem;
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.08);
-        }
-
-        /* Global Chart Overrides for Streamlit Cloud */
-        [data-testid="stVegaLiteChart"], .vega-embed, canvas {
-            background-color: white !important;
-            padding: 15px !important;
-            border-radius: 1rem !important;
-            border: 1px solid var(--border) !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02) !important;
-        }
-        
-        .vega-actions { display: none !important; }
         </style>
     """, unsafe_allow_html=True)
 
