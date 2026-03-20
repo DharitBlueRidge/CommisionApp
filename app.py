@@ -111,7 +111,6 @@ def apply_custom_css():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         
-        /* 0. ULTRA-AGGRESSIVE LIGHT MODE FORCE (THE NUCLEAR OPTION) */
         :root {
             color-scheme: light !important;
             --primary: #6366f1;
@@ -121,64 +120,86 @@ def apply_custom_css():
             --card-bg: #ffffff;
             --accent: #10b981;
             --accent-purple: #8b5cf6;
-            --text-main: #0f172a !important;
-            --text-muted: #64748b !important;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
             --border: #e2e8f0;
-            
-            /* FORCE Streamlit's Internal Color Variables */
+
+            /* Force Streamlit internal variables to light mode */
             --st-background-color: #ffffff !important;
             --st-secondary-background-color: #f8fafc !important;
             --st-text-color: #0f172a !important;
             --st-primary-color: #6366f1 !important;
         }
 
-        /* Target Streamlit's Dark Mode Body Class if injected */
-        .stApp[data-theme="dark"], [data-theme="dark"] body {
+        /* Force Light Theme globally and ignore system preferences */
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp {
             background-color: white !important;
-            color: #0f172a !important;
-        }
-
-        /* 1. Global Background & Text Reset */
-        html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .main {
-            background-color: white !important;
-            color: #0f172a !important;
+            color: var(--text-main) !important;
             font-family: 'Plus Jakarta Sans', sans-serif !important;
             color-scheme: light !important;
         }
 
-        /* 2. FORCE DARK TEXT ON EVERYTHING COMMON (To avoid black-on-black) */
-        label, .stMarkdown, p, span, h1, h2, h3, h4, h5, h6, .stButton p, .stTextInput label, .stSelectbox label, .stFileUploadDropzone label {
-            color: #0f172a !important;
-        }
-
-        /* 3. WIDGET HARDENING (File Uploader, Selectbox, Inputs) */
+        /* Harden file uploader and widgets to prevent dark mode bleed */
         [data-testid="stFileUploadDropzone"], [data-testid="stFileUploader"], [data-testid="stUploadedFile"] {
             background-color: #f8fafc !important;
             border: 2px dashed var(--border) !important;
-        }
-        
-        [data-testid="stFileUploadDropzone"] div, [data-testid="stFileUploadDropzone"] p, [data-testid="stFileUploadDropzone"] span {
-            color: #0f172a !important;
+            color: var(--text-main) !important;
         }
 
         .stTextInput input, .stNumberInput input, .stSelectbox [data-testid="stSelectbox"], .stTextArea textarea, .stMultiSelect div[role="listbox"] {
             background-color: white !important;
-            color: #0f172a !important;
+            color: var(--text-main) !important;
             border: 1px solid var(--border) !important;
         }
-
-        /* Fix for the "Black Dropdown" issue */
-        [data-testid="stVirtualDropdown"] div, [data-baseweb="popover"] div, [data-baseweb="menu"] div, [role="listbox"] div {
+        
+        /* Dropdown Menu Items Visibility */
+        [data-testid="stVirtualDropdown"] div, [data-baseweb="popover"] div, [data-baseweb="menu"] div {
             background-color: white !important;
-            color: #0f172a !important;
+            color: var(--text-main) !important;
+        }
+
+        /* Prevent labels from becoming white in dark mode */
+        label, .stMarkdown, p, span, h1, h2, h3, h4, h5, h6 {
+            color: var(--text-main) !important;
+        }
+
+        /* Force Sidebar Collapse Button Visibility */
+        [data-testid="stSidebarCollapse"] {
+            opacity: 1 !important;
+            visibility: visible !important;
+            color: var(--primary) !important;
+            background-color: white !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 50% !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+            transition: all 0.2s ease !important;
+            left: 10px !important;
+            top: 10px !important;
+            z-index: 100 !important;
         }
         
-        /* Highlighting selected items in dropdowns */
-        [role="option"]:hover, [role="option"][aria-selected="true"] {
-            background-color: #f1f5f9 !important;
+        [data-testid="stSidebarCollapse"]:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
         }
 
-        /* 4. SIDEBAR REFINEMENT (Remove Black Artifacts) */
+        /* Force chart backgrounds and labels more aggressively */
+        [data-testid="stVegaLiteChart"], .vega-embed, canvas, [data-testid="stLineChart"], [data-testid="stBarChart"] {
+            background-color: white !important;
+            color: var(--text-main) !important;
+        }
+        
+        .vega-bind label, .vega-actions-wrapper, .vg-tooltip {
+            color: var(--text-main) !important;
+            background-color: white !important;
+        }
+
+        .main {
+            background-color: var(--bg-main) !important;
+            background-image: none !important;
+        }
+
+        /* Sidebar navigation and menu look */
         [data-testid="stSidebar"] {
             background-color: #f8fafc !important;
             border-right: 1px solid var(--border) !important;
@@ -194,11 +215,10 @@ def apply_custom_css():
             border-radius: 12px !important;
             margin: 0.5rem 1rem !important;
             border: 1px solid var(--border) !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
         }
 
         [data-testid="stSidebarNav"] li [data-testid="stSidebarNavLink"] {
-            color: #0f172a !important;
+            color: var(--text-main) !important;
             font-weight: 600 !important;
         }
 
@@ -206,53 +226,34 @@ def apply_custom_css():
             border-color: var(--primary) !important;
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08) !important;
         }
-        
-        /* Sidebar Collapse Button Visibility */
-        [data-testid="stSidebarCollapse"] {
-            opacity: 1 !important;
-            visibility: visible !important;
+
+        [data-testid="stSidebar"] .stMarkdown h3 {
             color: var(--primary) !important;
-            background-color: white !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 50% !important;
-            left: 10px !important;
-            top: 10px !important;
-            z-index: 100 !important;
-        }
-
-        /* 5. ANALYTICS & CHARTS (The "Black Box" Fix) */
-        [data-testid="stVegaLiteChart"], .vega-embed, canvas, [data-testid="stLineChart"], [data-testid="stBarChart"], [data-testid="stHorizontalBlock"] > div {
-            background-color: white !important;
-            color: #0f172a !important;
+            font-weight: 800;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
         }
         
-        /* Force Vega-Lite internal labels */
-        .vega-bind label, .vega-actions-wrapper, .vg-tooltip, .vg-tooltip-element {
-            color: #0f172a !important;
-            background-color: white !important;
-            border: 1px solid var(--border) !important;
-        }
-
-        /* 6. LOGIN & FORMS (High Visibility) */
+        /* Login & Form Hardening */
         [data-testid="stForm"] {
             background-color: white !important;
-            padding: 3rem !important;
-            border-radius: 1.5rem !important;
+            padding: 2.5rem !important;
+            border-radius: 1.25rem !important;
             border: 1px solid var(--border) !important;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.06) !important;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05) !important;
         }
 
         [data-testid="stForm"] button[kind="primary"], .stButton button[kind="primary"] {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%) !important;
             color: white !important;
             border: none !important;
-            padding: 0.8rem 2.5rem !important;
+            padding: 0.75rem 2rem !important;
             font-weight: 700 !important;
             border-radius: 1rem !important;
-            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2) !important;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
         }
-
-        /* 7. DATAFRAMES & TABLES (No Index Artifacts) */
+        
+        /* Dataframes & Tables Hardening */
         [data-testid="stDataFrame"], [data-testid="stTable"], .stDataFrame, .stTable {
             background-color: white !important;
             border-radius: 1rem !important;
@@ -262,65 +263,211 @@ def apply_custom_css():
 
         [data-testid="stTable"] thead th {
             background-color: #f1f5f9 !important;
-            color: #0f172a !important;
-            font-weight: 700 !important;
+            color: var(--text-main) !important;
         }
 
-        [data-testid="stTable"] td, [data-testid="stDataFrame"] td {
+        [data-testid="stTable"] td {
             background-color: white !important;
-            color: #0f172a !important;
+            color: var(--text-main) !important;
         }
 
-        /* 8. HIDE DEFAULT ELEMENTS */
-        #MainMenu, footer, [data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"] {
-            visibility: hidden !important;
-            display: none !important;
-        }
-
-        /* 9. PREMIUM CARD DESIGN */
+        /* Premium Card Design */
         .card {
             background: white !important;
-            padding: 1.5rem;
-            border-radius: 1.25rem;
+            padding: 1.25rem;
+            border-radius: 1rem;
             border: 1px solid var(--border) !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06) !important;
+            border-color: var(--primary-light) !important;
         }
         
         .card-header {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 700;
-            color: var(--text-muted) !important;
+            color: var(--secondary) !important;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
         }
         
         .card-value {
-            font-size: 1.85rem;
+            font-size: 1.75rem;
             font-weight: 800;
-            color: #0f172a !important;
-            letter-spacing: -0.02em;
-        }
-
-        /* 10. Fix for Streamlit Notifications (Fix Yellow Box) */
-        [data-testid="stNotification"] {
-            background-color: #fefce8 !important;
-            color: #854d0e !important;
-            border: 1px solid #fef08a !important;
-            border-radius: 0.75rem !important;
+            color: var(--text-main) !important;
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.01em;
         }
         
-        [data-testid="stNotification"] p, [data-testid="stNotification"] span {
-            color: #854d0e !important;
+        /* Step Progress Bar Enhancement */
+        .step-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2.5rem;
+            padding: 0 3rem;
+            position: relative;
+        }
+        
+        .step-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+            z-index: 2;
+        }
+        
+        .step-circle {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            background: white !important;
+            border: 3px solid var(--border) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--text-muted) !important;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .step-item.active .step-circle {
+            background: var(--primary) !important;
+            border-color: var(--primary) !important;
+            color: white !important;
+            transform: scale(1.1);
+            box-shadow: 0 8px 15px rgba(99, 102, 241, 0.3) !important;
+        }
+        
+        .step-item.completed .step-circle {
+            background: var(--accent) !important;
+            border-color: var(--accent) !important;
+            color: white !important;
         }
 
-        /* 11. Fix for Sidebar Icons & Text */
-        [data-testid="stSidebarNavLink"] span {
-            color: #0f172a !important;
+        .step-line-bg {
+            position: absolute;
+            top: 1.75rem;
+            left: 15%;
+            width: 70%;
+            height: 4px;
+            background: var(--border);
+            z-index: 1;
+            border-radius: 2px;
+        }
+        
+        /* Typography & Headers */
+        .page-header {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #1e293b !important;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+        
+        .sub-header {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-muted) !important;
+            margin-bottom: 2rem;
         }
 
-        /* 12. Status Badges */
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main) !important;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Buttons & Inputs */
+        .stButton>button {
+            border-radius: 1rem !important;
+            padding: 0.75rem 2rem !important;
+            font-weight: 700 !important;
+            font-size: 1rem !important;
+            border: 1px solid var(--border) !important;
+            background: white !important;
+            color: var(--text-main) !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .stButton>button[kind="primary"] {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%) !important;
+            color: white !important;
+            border: none !important;
+        }
+        
+        /* Modern Dataframe Enhancement */
+        [data-testid="stDataFrame"], .stDataFrame {
+            border-radius: 1rem !important;
+            border: 1px solid var(--border) !important;
+            background: white !important;
+            padding: 8px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+
+        [data-testid="stTable"] thead th {
+            background-color: #f8fafc !important;
+            color: var(--secondary) !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            border: none !important;
+            padding: 12px !important;
+        }
+
+        [data-testid="stTable"] td {
+            border-bottom: 1px solid #f1f5f9 !important;
+            padding: 14px 16px !important;
+            color: var(--text-main) !important;
+            background-color: white !important;
+        }
+        
+        /* Persistent Premium Header Enhancement */
+        .global-header {
+            background: white !important;
+            padding: 1.25rem 2.5rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border) !important;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04) !important;
+        }
+        
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary) !important;
+            margin: 0;
+            letter-spacing: -0.01em;
+        }
+
+        /* Hide default Streamlit elements */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        [data-testid="stHeader"] {display: none !important;}
+        [data-testid="stToolbar"] {display: none !important;}
+        [data-testid="stDecoration"] {display: none !important;}
+
+        /* Status Badges */
         .badge {
             padding: 0.4rem 1rem;
             border-radius: 8px;
@@ -332,7 +479,7 @@ def apply_custom_css():
         .badge-admin { background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2); }
         .badge-stylist { background: rgba(16, 185, 129, 0.1); color: var(--accent); border: 1px solid rgba(16, 185, 129, 0.2); }
 
-        /* 13. Total Bonus Highlight Enhancement */
+        /* Total Bonus Highlight Enhancement */
         .bonus-highlight-box {
             background: linear-gradient(to right, #ffffff, #f5f7ff);
             padding: 1.5rem 2rem;
@@ -343,6 +490,14 @@ def apply_custom_css():
             align-items: center;
             margin-top: 1.5rem;
             box-shadow: 0 8px 20px rgba(99, 102, 241, 0.08);
+        }
+
+        /* Fix for chart backgrounds */
+        [data-testid="stVegaLiteChart"] {
+            background-color: white !important;
+            padding: 10px !important;
+            border-radius: 0.75rem !important;
+            border: 1px solid var(--border) !important;
         }
         </style>
     """, unsafe_allow_html=True)
