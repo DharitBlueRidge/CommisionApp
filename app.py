@@ -211,11 +211,61 @@ def apply_custom_css():
             padding: 0.4rem 0.6rem !important;
         }
 
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] span,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] small,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] p {
+            background: transparent !important;
+            color: var(--text-main) !important;
+            opacity: 1 !important;
+            -webkit-text-fill-color: var(--text-main) !important;
+        }
+
+        [data-testid="stFileUploader"] [data-testid="stUploadedFileName"] {
+            color: var(--text-main) !important;
+            font-weight: 600 !important;
+            opacity: 1 !important;
+        }
+
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] button {
+            background: #eef2ff !important;
+            color: var(--primary) !important;
+            border: 1px solid #c7d2fe !important;
+            border-radius: 0.7rem !important;
+            min-width: 2rem !important;
+            min-height: 2rem !important;
+            padding: 0 !important;
+        }
+
         [data-testid="stFileUploader"] svg,
         [data-testid="stFileUploader"] path {
             fill: currentColor !important;
             stroke: currentColor !important;
             color: var(--primary) !important;
+        }
+
+        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] svg,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] svg {
+            width: 1.1rem !important;
+            height: 1.1rem !important;
+            display: block !important;
+            background: transparent !important;
+        }
+
+        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child {
+            background: transparent !important;
+            min-width: auto !important;
+            width: auto !important;
+            height: auto !important;
+            padding: 0 !important;
+        }
+
+        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child * ,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child * {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
         }
 
         .stTextInput input, .stNumberInput input, .stSelectbox [data-testid="stSelectbox"], .stTextArea textarea, .stMultiSelect div[role="listbox"], [data-baseweb="select"] > div, [data-baseweb="input"] > div {
@@ -342,14 +392,62 @@ def apply_custom_css():
             border-radius: 50% !important;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
             transition: all 0.2s ease !important;
-            left: 10px !important;
-            top: 10px !important;
-            z-index: 100 !important;
+            position: fixed !important;
+            left: 12px !important;
+            top: 12px !important;
+            width: 2.5rem !important;
+            height: 2.5rem !important;
+            z-index: 1000 !important;
+            pointer-events: auto !important;
+        }
+
+        [data-testid="stSidebarCollapse"] button,
+        [data-testid="stSidebarCollapse"] svg,
+        [data-testid="stSidebarCollapse"] path,
+        [data-testid="stSidebarCollapse"] * {
+            opacity: 1 !important;
+            visibility: visible !important;
+            color: var(--primary) !important;
+            fill: currentColor !important;
+            stroke: currentColor !important;
+        }
+
+        [data-testid="stSidebarCollapsedControl"] {
+            opacity: 1 !important;
+            visibility: visible !important;
         }
         
         [data-testid="stSidebarCollapse"]:hover {
             transform: scale(1.1);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        }
+
+        button[kind="header"][data-testid="stSidebarCollapsedControl"],
+        [data-testid="collapsedControl"],
+        [data-testid="stSidebarCollapsedControl"] {
+            position: fixed !important;
+            left: 12px !important;
+            top: 12px !important;
+            z-index: 1001 !important;
+            width: 2.5rem !important;
+            height: 2.5rem !important;
+            min-width: 2.5rem !important;
+            min-height: 2.5rem !important;
+            border-radius: 999px !important;
+            background: white !important;
+            color: var(--primary) !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12) !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        button[kind="header"][data-testid="stSidebarCollapsedControl"] *,
+        [data-testid="collapsedControl"] *,
+        [data-testid="stSidebarCollapsedControl"] * {
+            color: var(--primary) !important;
+            fill: currentColor !important;
+            stroke: currentColor !important;
         }
 
         /* Force chart backgrounds and labels more aggressively */
@@ -762,8 +860,29 @@ def apply_custom_css():
         /* Hide default Streamlit elements */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        [data-testid="stHeader"] {display: none !important;}
-        [data-testid="stToolbar"] {display: none !important;}
+        [data-testid="stHeader"] {
+            display: block !important;
+            height: 0 !important;
+            min-height: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            pointer-events: none !important;
+            position: relative !important;
+            z-index: 999 !important;
+        }
+        [data-testid="stHeader"] * {
+            pointer-events: auto !important;
+        }
+        [data-testid="stToolbar"] {
+            position: fixed !important;
+            top: 12px !important;
+            left: 12px !important;
+            z-index: 1000 !important;
+            background: transparent !important;
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
         [data-testid="stDecoration"] {display: none !important;}
 
         /* Status Badges */
