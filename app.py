@@ -3,9 +3,11 @@ import pandas as pd
 from datetime import datetime, timedelta
 import calculations
 import os
+import html
 import streamlit_authenticator as stauth
 import requests
 import json
+import altair as alt
 from streamlit_option_menu import option_menu
 import base64
 
@@ -132,10 +134,16 @@ def apply_custom_css():
         }
 
         /* Force Light Theme globally and ignore system preferences */
-        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp {
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp, [data-testid="stApp"], [data-testid="stMain"] {
             background-color: white !important;
             color: var(--text-main) !important;
             font-family: 'Plus Jakarta Sans', sans-serif !important;
+            color-scheme: light !important;
+            forced-color-adjust: none !important;
+            -webkit-text-fill-color: inherit;
+        }
+
+        *, *::before, *::after {
             color-scheme: light !important;
         }
 
@@ -146,7 +154,7 @@ def apply_custom_css():
             color: var(--text-main) !important;
         }
 
-        .stTextInput input, .stNumberInput input, .stSelectbox [data-testid="stSelectbox"], .stTextArea textarea, .stMultiSelect div[role="listbox"] {
+        .stTextInput input, .stNumberInput input, .stSelectbox [data-testid="stSelectbox"], .stTextArea textarea, .stMultiSelect div[role="listbox"], [data-baseweb="select"] > div, [data-baseweb="input"] > div {
             background-color: white !important;
             color: var(--text-main) !important;
             border: 1px solid var(--border) !important;
@@ -184,7 +192,7 @@ def apply_custom_css():
         }
 
         /* Force chart backgrounds and labels more aggressively */
-        [data-testid="stVegaLiteChart"], .vega-embed, canvas, [data-testid="stLineChart"], [data-testid="stBarChart"] {
+        [data-testid="stVegaLiteChart"], .vega-embed, canvas, svg, [data-testid="stLineChart"], [data-testid="stBarChart"], [data-testid="stAltairChart"] {
             background-color: white !important;
             color: var(--text-main) !important;
         }
@@ -243,7 +251,23 @@ def apply_custom_css():
             box-shadow: 0 20px 40px rgba(0,0,0,0.05) !important;
         }
 
-        [data-testid="stForm"] button[kind="primary"], .stButton button[kind="primary"] {
+        [data-testid="stForm"] button,
+        [data-testid="stForm"] button[kind="primary"],
+        [data-testid="stForm"] button[kind="secondaryFormSubmit"],
+        .stButton button,
+        .stButton button[kind="primary"],
+        .stButton button[data-testid="stBaseButton-primary"],
+        .stButton button[data-testid="stBaseButton-secondary"] {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            border-radius: 1rem !important;
+            min-height: 2.75rem !important;
+        }
+
+        [data-testid="stForm"] button[kind="primary"],
+        [data-testid="stForm"] button[kind="secondaryFormSubmit"],
+        .stButton button[kind="primary"],
+        .stButton button[data-testid="stBaseButton-primary"] {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%) !important;
             color: white !important;
             border: none !important;
@@ -412,14 +436,23 @@ def apply_custom_css():
             color: white !important;
             border: none !important;
         }
-        
+
+        .stButton>button:hover,
+        [data-testid="stForm"] button:hover {
+            filter: brightness(0.98) !important;
+        }
+
         /* Modern Dataframe Enhancement */
-        [data-testid="stDataFrame"], .stDataFrame {
+        [data-testid="stDataFrame"], .stDataFrame, [data-testid="stTable"], .element-container table {
             border-radius: 1rem !important;
             border: 1px solid var(--border) !important;
             background: white !important;
             padding: 8px !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+
+        [data-testid="stDataFrameGlideDataEditor"], [data-testid="stDataFrameResizable"], [data-testid="stElementContainer"] canvas {
+            background: white !important;
         }
 
         [data-testid="stTable"] thead th {
@@ -499,6 +532,44 @@ def apply_custom_css():
             border-radius: 0.75rem !important;
             border: 1px solid var(--border) !important;
         }
+
+        .light-table-wrap {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+
+        .light-table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .light-table-wrap thead th {
+            background: #f8fafc;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .light-table-wrap tbody td {
+            background: white;
+            color: var(--text-main);
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.92rem;
+        }
+
+        .light-table-wrap tbody tr:last-child td {
+            border-bottom: none;
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -517,9 +588,129 @@ def dashboard_card(title, value, delta=None, delta_type="up", prefix="AED", icon
         </div>
     """, unsafe_allow_html=True)
 
+def render_theme_lock():
+    st.components.v1.html(
+        """
+        <script>
+        const lockLightTheme = () => {
+            try {
+                const doc = window.parent.document;
+                if (!doc) return;
+                doc.documentElement.style.colorScheme = "light";
+                doc.body.style.colorScheme = "light";
+                doc.documentElement.setAttribute("data-theme", "light");
+                doc.body.setAttribute("data-theme", "light");
+            } catch (error) {
+                console.debug("Theme lock skipped", error);
+            }
+        };
+        lockLightTheme();
+        try {
+            new MutationObserver(lockLightTheme).observe(window.parent.document.documentElement, {attributes: true, childList: true, subtree: false});
+        } catch (error) {
+            console.debug("Theme observer skipped", error);
+        }
+        </script>
+        """,
+        height=0,
+    )
+
+def render_altair_line_chart(dataframe):
+    chart_data = dataframe.reset_index().rename(columns={"index": "Period"})
+    long_df = chart_data.melt(id_vars="Period", var_name="Metric", value_name="Amount")
+    color_scale = alt.Scale(
+        domain=["Revenue Growth", "Bonus Payouts"],
+        range=["#6366f1", "#10b981"],
+    )
+    chart = (
+        alt.Chart(long_df)
+        .mark_line(point=True, strokeWidth=3)
+        .encode(
+            x=alt.X("Period:N", sort=None, axis=alt.Axis(title=None, labelColor="#475569", labelAngle=0)),
+            y=alt.Y("Amount:Q", axis=alt.Axis(title=None, labelColor="#475569", gridColor="#e2e8f0")),
+            color=alt.Color("Metric:N", scale=color_scale, legend=alt.Legend(title=None, labelColor="#475569")),
+            tooltip=[
+                alt.Tooltip("Period:N", title="Period"),
+                alt.Tooltip("Metric:N", title="Metric"),
+                alt.Tooltip("Amount:Q", title="Amount", format=",.2f"),
+            ],
+        )
+        .properties(height=320)
+        .configure(background="white")
+        .configure_view(stroke="#e2e8f0")
+        .configure_axis(domainColor="#cbd5e1", tickColor="#cbd5e1", labelFontSize=12)
+        .configure_legend(labelFontSize=12)
+    )
+    st.altair_chart(chart, use_container_width=True, theme=None)
+
+def render_altair_bar_chart(dataframe):
+    chart_data = dataframe.reset_index()
+    chart_data.columns = ["Metric", "Amount"]
+    chart = (
+        alt.Chart(chart_data)
+        .mark_bar(color="#6366f1", cornerRadiusTopLeft=6, cornerRadiusTopRight=6)
+        .encode(
+            x=alt.X("Metric:N", sort=None, axis=alt.Axis(title=None, labelColor="#475569", labelAngle=0)),
+            y=alt.Y("Amount:Q", axis=alt.Axis(title=None, labelColor="#475569", gridColor="#e2e8f0")),
+            tooltip=[
+                alt.Tooltip("Metric:N", title="Metric"),
+                alt.Tooltip("Amount:Q", title="Amount", format=",.2f"),
+            ],
+        )
+        .properties(height=320)
+        .configure(background="white")
+        .configure_view(stroke="#e2e8f0")
+        .configure_axis(domainColor="#cbd5e1", tickColor="#cbd5e1", labelFontSize=12)
+    )
+    st.altair_chart(chart, use_container_width=True, theme=None)
+
+def render_light_table(dataframe, column_labels=None, money_cols=None, date_cols=None, max_rows=None):
+    if dataframe is None or dataframe.empty:
+        st.info("No data available.")
+        return
+
+    df = dataframe.copy()
+    if max_rows is not None:
+        df = df.head(max_rows)
+
+    if column_labels:
+        df = df.rename(columns=column_labels)
+
+    money_cols = money_cols or []
+    date_cols = date_cols or []
+
+    for col in money_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").map(lambda x: f"AED {x:,.2f}" if pd.notna(x) else "-")
+
+    for col in date_cols:
+        if col in df.columns:
+            parsed = pd.to_datetime(df[col], errors="coerce")
+            df[col] = parsed.dt.strftime("%d %b %Y").fillna("-")
+
+    if isinstance(df.index, pd.RangeIndex):
+        df = df.reset_index(drop=True)
+
+    headers = "".join(f"<th>{html.escape(str(col))}</th>" for col in df.columns)
+    rows = []
+    for _, row in df.iterrows():
+        cells = "".join(f"<td>{html.escape(str(value))}</td>" for value in row.tolist())
+        rows.append(f"<tr>{cells}</tr>")
+
+    table_html = f"""
+        <div class="light-table-wrap">
+            <table>
+                <thead><tr>{headers}</tr></thead>
+                <tbody>{''.join(rows)}</tbody>
+            </table>
+        </div>
+    """
+    st.markdown(table_html, unsafe_allow_html=True)
+
 # --- Main Logic ---
 def main():
     apply_custom_css()
+    render_theme_lock()
     
     # --- Dynamic User Management from Supabase ---
     users_df = get_users_from_supabase()
@@ -671,8 +862,7 @@ def main():
                     
                     with st.container(border=True):
                         st.markdown(f'<div class="sub-header" style="margin-bottom:1rem;">{time_view} (AED)</div>', unsafe_allow_html=True)
-                        # Line chart better represents growth over time
-                        st.line_chart(chart_data, color=["#6366f1", "#10b981"], use_container_width=True)
+                        render_altair_line_chart(chart_data)
 
                     c1, c2 = st.columns([2, 1])
                     with c1:
@@ -683,17 +873,31 @@ def main():
                             comp_plot = pd.DataFrame([composition.values], columns=[bonus_cols_map[c] for c in existing_cols])
                             with st.container(border=True):
                                 st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Bonus Composition</div>', unsafe_allow_html=True)
-                                st.bar_chart(comp_plot.T, color="#6366f1", use_container_width=True)
+                                render_altair_bar_chart(comp_plot.T)
                     
                     with c2:
                         with st.container(border=True):
                             st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Top Performing Stylists</div>', unsafe_allow_html=True)
                             if 'stylist_name' in history.columns:
                                 top_stylists = history.groupby('stylist_name')['total_bonus'].sum().sort_values(ascending=False).reset_index().head(5)
-                                st.dataframe(top_stylists, use_container_width=True, hide_index=True, column_config={"stylist_name": "Stylist", "total_bonus": st.column_config.NumberColumn("Total Bonus", format="AED %.2f")})
+                                render_light_table(
+                                    top_stylists,
+                                    column_labels={"stylist_name": "Stylist", "total_bonus": "Total Bonus"},
+                                    money_cols=["Total Bonus"],
+                                )
 
                     st.markdown('<div class="section-title">Recent Performance Logs</div>', unsafe_allow_html=True)
-                    st.dataframe(history.sort_values('calculation_date', ascending=False).head(10), use_container_width=True, hide_index=True, column_config={"calculation_date": st.column_config.DatetimeColumn("Run Date", format="DD MMM YYYY"), "monthly_sales": st.column_config.NumberColumn("Monthly Sales", format="AED %.2f"), "total_bonus": st.column_config.NumberColumn("Total Bonus", format="AED %.2f")})
+                    render_light_table(
+                        history.sort_values('calculation_date', ascending=False)[['calculation_date', 'stylist_name', 'monthly_sales', 'total_bonus']].head(10),
+                        column_labels={
+                            "calculation_date": "Run Date",
+                            "stylist_name": "Stylist",
+                            "monthly_sales": "Monthly Sales",
+                            "total_bonus": "Total Bonus",
+                        },
+                        money_cols=["Monthly Sales", "Total Bonus"],
+                        date_cols=["Run Date"],
+                    )
             else:
                 st.info("No historical data found.")
 
@@ -951,7 +1155,7 @@ def main():
             if 'raw_data' in st.session_state and 'prices' in st.session_state.raw_data:
                 with st.container(border=True):
                     st.write("Current price list loaded from your monthly Excel file.")
-                    st.dataframe(st.session_state.raw_data['prices'], use_container_width=True, hide_index=True)
+                    render_light_table(st.session_state.raw_data['prices'])
             else: st.info("No price list loaded yet.")
 
         # --- History Log Page ---
