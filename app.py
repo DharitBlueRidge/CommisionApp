@@ -874,14 +874,9 @@ def apply_custom_css():
             pointer-events: auto !important;
         }
         [data-testid="stToolbar"] {
-            position: fixed !important;
-            top: 12px !important;
-            left: 12px !important;
-            z-index: 1000 !important;
-            background: transparent !important;
-            display: flex !important;
-            visibility: visible !important;
-            opacity: 1 !important;
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
         }
         [data-testid="stDecoration"] {display: none !important;}
 
