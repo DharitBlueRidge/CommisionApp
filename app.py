@@ -382,69 +382,20 @@ def apply_custom_css():
             color: var(--text-main) !important;
         }
 
-        /* Force Sidebar Collapse Button Visibility */
-        [data-testid="stSidebarCollapse"] {
+        /* Keep the native sidebar collapse toggle visible even when not hovered */
+        [data-testid="stSidebarCollapseButton"],
+        [data-testid="stSidebarCollapseButton"] button,
+        [data-testid="stSidebarCollapse"],
+        [data-testid="stSidebarCollapse"] button {
             opacity: 1 !important;
             visibility: visible !important;
             color: var(--primary) !important;
-            background-color: white !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 50% !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-            transition: all 0.2s ease !important;
-            position: fixed !important;
-            left: 12px !important;
-            top: 12px !important;
-            width: 2.5rem !important;
-            height: 2.5rem !important;
-            z-index: 1000 !important;
-            pointer-events: auto !important;
         }
 
-        [data-testid="stSidebarCollapse"] button,
-        [data-testid="stSidebarCollapse"] svg,
-        [data-testid="stSidebarCollapse"] path,
+        [data-testid="stSidebarCollapseButton"] *,
         [data-testid="stSidebarCollapse"] * {
             opacity: 1 !important;
             visibility: visible !important;
-            color: var(--primary) !important;
-            fill: currentColor !important;
-            stroke: currentColor !important;
-        }
-
-        [data-testid="stSidebarCollapsedControl"] {
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-        
-        [data-testid="stSidebarCollapse"]:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
-        }
-
-        button[kind="header"][data-testid="stSidebarCollapsedControl"],
-        [data-testid="collapsedControl"],
-        [data-testid="stSidebarCollapsedControl"] {
-            position: fixed !important;
-            left: 12px !important;
-            top: 12px !important;
-            z-index: 1001 !important;
-            width: 2.5rem !important;
-            height: 2.5rem !important;
-            min-width: 2.5rem !important;
-            min-height: 2.5rem !important;
-            border-radius: 999px !important;
-            background: white !important;
-            color: var(--primary) !important;
-            border: 1px solid var(--border) !important;
-            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12) !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-
-        button[kind="header"][data-testid="stSidebarCollapsedControl"] *,
-        [data-testid="collapsedControl"] *,
-        [data-testid="stSidebarCollapsedControl"] * {
             color: var(--primary) !important;
             fill: currentColor !important;
             stroke: currentColor !important;
@@ -513,45 +464,11 @@ def apply_custom_css():
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08) !important;
         }
 
-        .nav-pills,
-        .nav.nav-pills {
-            background: transparent !important;
-            gap: 0.35rem !important;
-        }
-
-        .nav-pills .nav-item,
-        .nav.nav-pills .nav-item {
-            background: transparent !important;
-        }
-
-        .nav-pills .nav-link,
-        .nav.nav-pills .nav-link {
-            background: white !important;
-            color: var(--text-muted) !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 0.8rem !important;
-            padding: 0.7rem 1rem !important;
-            font-weight: 700 !important;
-            min-height: 2.7rem !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03) !important;
-        }
-
-        .nav-pills .nav-link:hover,
-        .nav.nav-pills .nav-link:hover {
-            background: #f8fafc !important;
+        [data-testid="stSidebar"] .stMarkdown h3 {
             color: var(--primary) !important;
-            border-color: #c7d2fe !important;
-        }
-
-        .nav-pills .nav-link.active,
-        .nav.nav-pills .nav-link.active {
-            background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%) !important;
-            color: var(--primary) !important;
-            border-color: #c7d2fe !important;
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.08) !important;
+            font-weight: 800;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
         }
 
         [role="radiogroup"] {
@@ -579,13 +496,6 @@ def apply_custom_css():
             border-color: #c7d2fe !important;
         }
 
-        [data-testid="stSidebar"] .stMarkdown h3 {
-            color: var(--primary) !important;
-            font-weight: 800;
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        
         /* Login & Form Hardening */
         [data-testid="stForm"] {
             background-color: white !important;
@@ -862,23 +772,34 @@ def apply_custom_css():
         footer {visibility: hidden;}
         [data-testid="stHeader"] {
             display: block !important;
-            height: 0 !important;
-            min-height: 0 !important;
+            height: auto !important;
+            min-height: 2.75rem !important;
             background: transparent !important;
             border: none !important;
-            pointer-events: none !important;
-            position: relative !important;
-            z-index: 999 !important;
-        }
-        [data-testid="stHeader"] * {
-            pointer-events: auto !important;
         }
         [data-testid="stToolbar"] {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            background: transparent !important;
+        }
+        [data-testid="stToolbar"] a,
+        [data-testid="stToolbar"] button,
+        [data-testid="stToolbar"] [role="button"] {
+            margin-top: 10px !important;
+        }
+        [data-testid="stToolbar"] a[href*="share.streamlit.io"],
+        [data-testid="stToolbar"] a[title*="Deploy" i],
+        [data-testid="stToolbar"] button[title*="Deploy" i],
+        [data-testid="stToolbar"] [aria-label*="Deploy" i] {
             display: none !important;
             visibility: hidden !important;
-            opacity: 0 !important;
         }
         [data-testid="stDecoration"] {display: none !important;}
+
+        .block-container {
+            padding-top: 1rem !important;
+        }
 
         /* Status Badges */
         .badge {
@@ -1145,7 +1066,6 @@ def main():
             st.markdown(f"### Dashboard")
             st.markdown(f"Welcome, **{user_display_name}**")
             
-            # Dynamic Menu Options based on Role
             menu_options = ["Dashboard"]
             menu_icons = ["speedometer2"]
             
@@ -1164,11 +1084,11 @@ def main():
                 default_index=0,
                 styles={
                     "container": {"padding": "0!important", "background-color": "white", "border-radius": "0.75rem"},
-                    "icon": {"color": "#6366f1", "font-size": "1.1rem"}, 
+                    "icon": {"color": "#6366f1", "font-size": "1.1rem"},
                     "nav-link": {
-                        "font-size": "0.95rem", 
-                        "text-align": "left", 
-                        "margin":"0.5rem", 
+                        "font-size": "0.95rem",
+                        "text-align": "left",
+                        "margin": "0.5rem",
                         "border-radius": "0.5rem",
                         "color": "#64748b",
                         "font-weight": "500",
@@ -1186,7 +1106,6 @@ def main():
             st.markdown("---")
             authenticator.logout(location='sidebar')
 
-        # --- Global Header ---
         st.markdown(f"""
             <div class="global-header">
                 <div class="header-title">{page if page != "History Log" else "Archive"}</div>
@@ -1198,219 +1117,210 @@ def main():
 
         # --- Dashboard Page ---
         if page == "Dashboard":
-            history = get_history_from_supabase()
-            if not history.empty:
-                if user_role == "stylist":
-                    history = history[history['stylist_name'] == user_display_name]
-                
-                if history.empty:
-                    st.info("No performance data found for your account yet.")
-                else:
-                    history['calculation_date'] = pd.to_datetime(history['calculation_date'], format='ISO8601', errors='coerce')
-                    history = history.dropna(subset=['calculation_date'])
+                history = get_history_from_supabase()
+                if not history.empty:
+                    if user_role == "stylist":
+                        history = history[history['stylist_name'] == user_display_name]
                     
-                    m1, m2, m3, m4 = st.columns(4)
-                    total_sales = history['monthly_sales'].sum()
-                    total_bonus = history['total_bonus'].sum()
-                    avg_bonus_per_sale = (total_bonus / total_sales * 100) if total_sales > 0 else 0
-                    
-                    with m1: dashboard_card("Total Revenue", f"{total_sales:,.0f}")
-                    with m2: dashboard_card("Total Bonuses", f"{total_bonus:,.0f}")
-                    with m3: dashboard_card("Bonus Margin", f"{avg_bonus_per_sale:.1f}", prefix="", delta=None)
-                    with m4: dashboard_card("Total Records", f"{len(history)}", prefix="", delta=None)
-
-                    # --- NEW: Enhanced Growth Analytics ---
-                    st.markdown('<div class="section-title">Growth Analytics</div>', unsafe_allow_html=True)
-                    
-                    # Time Period Selector for Graph
-                    time_view = st.radio("Select View:", ["Monthly Growth", "Weekly Growth"], horizontal=True, label_visibility="collapsed")
-                    
-                    history = history.sort_values('calculation_date')
-                    
-                    if time_view == "Monthly Growth":
-                        history['Period'] = history['calculation_date'].dt.strftime('%b %Y')
-                        chart_data = history.groupby('Period', sort=False)[['monthly_sales', 'total_bonus']].sum()
+                    if history.empty:
+                        st.info("No performance data found for your account yet.")
                     else:
-                        # Create a "Week starting" label
-                        history['Period'] = history['calculation_date'].apply(lambda x: (x - timedelta(days=x.weekday())).strftime('%d %b'))
-                        chart_data = history.groupby('Period', sort=False)[['monthly_sales', 'total_bonus']].sum()
-                    
-                    chart_data = chart_data.rename(columns={
-                        'monthly_sales': 'Revenue Growth',
-                        'total_bonus': 'Bonus Payouts'
-                    })
-                    
-                    with st.container(border=True):
-                        st.markdown(f'<div class="sub-header" style="margin-bottom:1rem;">{time_view} (AED)</div>', unsafe_allow_html=True)
-                        render_altair_line_chart(chart_data)
+                        history['calculation_date'] = pd.to_datetime(history['calculation_date'], format='ISO8601', errors='coerce')
+                        history = history.dropna(subset=['calculation_date'])
+                        
+                        m1, m2, m3, m4 = st.columns(4)
+                        total_sales = history['monthly_sales'].sum()
+                        total_bonus = history['total_bonus'].sum()
+                        avg_bonus_per_sale = (total_bonus / total_sales * 100) if total_sales > 0 else 0
+                        
+                        with m1: dashboard_card("Total Revenue", f"{total_sales:,.0f}")
+                        with m2: dashboard_card("Total Bonuses", f"{total_bonus:,.0f}")
+                        with m3: dashboard_card("Bonus Margin", f"{avg_bonus_per_sale:.1f}", prefix="", delta=None)
+                        with m4: dashboard_card("Total Records", f"{len(history)}", prefix="", delta=None)
 
-                    c1, c2 = st.columns([2, 1])
-                    with c1:
-                        bonus_cols_map = {'daily_bonus': 'Daily Bonus', 'stretch_bonus': 'Stretch Bonus', 'product_commission': 'Product Comm', 'service_commission': 'Service Comm', 'referral_bonus': 'Referrals', 'review_bonus': 'Reviews'}
-                        existing_cols = [c for c in bonus_cols_map.keys() if c in history.columns]
-                        if existing_cols:
-                            composition = history[existing_cols].sum()
-                            comp_plot = pd.DataFrame([composition.values], columns=[bonus_cols_map[c] for c in existing_cols])
-                            with st.container(border=True):
-                                st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Bonus Composition</div>', unsafe_allow_html=True)
-                                render_altair_bar_chart(comp_plot.T)
-                    
-                    with c2:
+                        st.markdown('<div class="section-title">Growth Analytics</div>', unsafe_allow_html=True)
+                        time_view = st.radio("Select View:", ["Monthly Growth", "Weekly Growth"], horizontal=True, label_visibility="collapsed")
+                        history = history.sort_values('calculation_date')
+                        
+                        if time_view == "Monthly Growth":
+                            history['Period'] = history['calculation_date'].dt.strftime('%b %Y')
+                            chart_data = history.groupby('Period', sort=False)[['monthly_sales', 'total_bonus']].sum()
+                        else:
+                            history['Period'] = history['calculation_date'].apply(lambda x: (x - timedelta(days=x.weekday())).strftime('%d %b'))
+                            chart_data = history.groupby('Period', sort=False)[['monthly_sales', 'total_bonus']].sum()
+                        
+                        chart_data = chart_data.rename(columns={
+                            'monthly_sales': 'Revenue Growth',
+                            'total_bonus': 'Bonus Payouts'
+                        })
+                        
                         with st.container(border=True):
-                            st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Top Performing Stylists</div>', unsafe_allow_html=True)
-                            if 'stylist_name' in history.columns:
-                                top_stylists = history.groupby('stylist_name')['total_bonus'].sum().sort_values(ascending=False).reset_index().head(5)
-                                render_light_table(
-                                    top_stylists,
-                                    column_labels={"stylist_name": "Stylist", "total_bonus": "Total Bonus"},
-                                    money_cols=["Total Bonus"],
-                                )
+                            st.markdown(f'<div class="sub-header" style="margin-bottom:1rem;">{time_view} (AED)</div>', unsafe_allow_html=True)
+                            render_altair_line_chart(chart_data)
 
-                    st.markdown('<div class="section-title">Recent Performance Logs</div>', unsafe_allow_html=True)
-                    render_light_table(
-                        history.sort_values('calculation_date', ascending=False)[['calculation_date', 'stylist_name', 'monthly_sales', 'total_bonus']].head(10),
-                        column_labels={
-                            "calculation_date": "Run Date",
-                            "stylist_name": "Stylist",
-                            "monthly_sales": "Monthly Sales",
-                            "total_bonus": "Total Bonus",
-                        },
-                        money_cols=["Monthly Sales", "Total Bonus"],
-                        date_cols=["Run Date"],
-                    )
-            else:
-                st.info("No historical data found.")
+                        c1, c2 = st.columns([2, 1])
+                        with c1:
+                            bonus_cols_map = {'daily_bonus': 'Daily Bonus', 'stretch_bonus': 'Stretch Bonus', 'product_commission': 'Product Comm', 'service_commission': 'Service Comm', 'referral_bonus': 'Referrals', 'review_bonus': 'Reviews'}
+                            existing_cols = [c for c in bonus_cols_map.keys() if c in history.columns]
+                            if existing_cols:
+                                composition = history[existing_cols].sum()
+                                comp_plot = pd.DataFrame([composition.values], columns=[bonus_cols_map[c] for c in existing_cols])
+                                with st.container(border=True):
+                                    st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Bonus Composition</div>', unsafe_allow_html=True)
+                                    render_altair_bar_chart(comp_plot.T)
+                        
+                        with c2:
+                            with st.container(border=True):
+                                st.markdown('<div class="sub-header" style="margin-bottom:1rem;">Top Performing Stylists</div>', unsafe_allow_html=True)
+                                if 'stylist_name' in history.columns:
+                                    top_stylists = history.groupby('stylist_name')['total_bonus'].sum().sort_values(ascending=False).reset_index().head(5)
+                                    render_light_table(
+                                        top_stylists,
+                                        column_labels={"stylist_name": "Stylist", "total_bonus": "Total Bonus"},
+                                        money_cols=["Total Bonus"],
+                                    )
+
+                        st.markdown('<div class="section-title">Recent Performance Logs</div>', unsafe_allow_html=True)
+                        render_light_table(
+                            history.sort_values('calculation_date', ascending=False)[['calculation_date', 'stylist_name', 'monthly_sales', 'total_bonus']].head(10),
+                            column_labels={
+                                "calculation_date": "Run Date",
+                                "stylist_name": "Stylist",
+                                "monthly_sales": "Monthly Sales",
+                                "total_bonus": "Total Bonus",
+                            },
+                            money_cols=["Monthly Sales", "Total Bonus"],
+                            date_cols=["Run Date"],
+                        )
+                else:
+                    st.info("No historical data found.")
 
         # --- Calculator Page ---
         elif page == "Calculator":
-            if 'wizard_step' not in st.session_state: st.session_state.wizard_step = 1
-            if 'stylist_configs' not in st.session_state: st.session_state.stylist_configs = {}
+                if 'wizard_step' not in st.session_state: st.session_state.wizard_step = 1
+                if 'stylist_configs' not in st.session_state: st.session_state.stylist_configs = {}
 
-            st.markdown(f"""
-                <div class="step-container">
-                    <div class="step-line-bg"></div>
-                    <div class="step-item {'active' if st.session_state.wizard_step == 1 else 'completed'}">
-                        <div class="step-circle">1</div>
-                        <div class="step-label">Upload Data</div>
+                st.markdown(f"""
+                    <div class="step-container">
+                        <div class="step-line-bg"></div>
+                        <div class="step-item {'active' if st.session_state.wizard_step == 1 else 'completed'}">
+                            <div class="step-circle">1</div>
+                            <div class="step-label">Upload Data</div>
+                        </div>
+                        <div class="step-item {'active' if st.session_state.wizard_step == 2 else ('completed' if st.session_state.wizard_step > 2 else '')}">
+                            <div class="step-circle">2</div>
+                            <div class="step-label">Configure Staff</div>
+                        </div>
+                        <div class="step-item {'active' if st.session_state.wizard_step == 3 else ''}">
+                            <div class="step-circle">3</div>
+                            <div class="step-label">Review Results</div>
+                        </div>
                     </div>
-                    <div class="step-item {'active' if st.session_state.wizard_step == 2 else ('completed' if st.session_state.wizard_step > 2 else '')}">
-                        <div class="step-circle">2</div>
-                        <div class="step-label">Configure Staff</div>
-                    </div>
-                    <div class="step-item {'active' if st.session_state.wizard_step == 3 else ''}">
-                        <div class="step-circle">3</div>
-                        <div class="step-label">Review Results</div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            if st.session_state.wizard_step == 1:
-                st.markdown('<div class="page-header">Get Started</div>', unsafe_allow_html=True)
-                st.markdown('<div class="sub-header">Upload your monthly consolidated report to begin.</div>', unsafe_allow_html=True)
-                with st.container(border=True):
-                    uploaded_file = st.file_uploader("Drop your Excel file here", type=["xlsx"], label_visibility="collapsed")
-                    if uploaded_file:
-                        try:
-                            xls = pd.ExcelFile(uploaded_file)
-                            df_services = pd.read_excel(xls, 'Services Sales')
-                            df_products = pd.read_excel(xls, 'Product Sales')
-                            df_prices = pd.read_excel(xls, 'Products Price List')
-                            st.session_state.raw_data = {'services': df_services, 'products': df_products, 'prices': df_prices}
-                            df_services['Date_dt'] = pd.to_datetime(df_services['Date'], dayfirst=True, errors='coerce')
-                            valid_dates = df_services['Date_dt'].dropna()
-                            available_months = sorted(valid_dates.dt.strftime('%B %Y').unique().tolist(), key=lambda x: datetime.strptime(x, '%B %Y'))
-                            st.markdown('<div class="section-title">Select Month</div>', unsafe_allow_html=True)
-                            st.session_state.selected_month = st.selectbox("", available_months, label_visibility="collapsed")
-                            if st.button("Continue to Configuration →", type="primary", use_container_width=True):
-                                st.session_state.wizard_step = 2
-                                st.rerun()
-                        except Exception as e: st.error(f"Error processing file: {e}")
+                """, unsafe_allow_html=True)
+                
+                if st.session_state.wizard_step == 1:
+                    st.markdown('<div class="page-header">Get Started</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="sub-header">Upload your monthly consolidated report to begin.</div>', unsafe_allow_html=True)
+                    with st.container(border=True):
+                        uploaded_file = st.file_uploader("Drop your Excel file here", type=["xlsx"], label_visibility="collapsed")
+                        if uploaded_file:
+                            try:
+                                xls = pd.ExcelFile(uploaded_file)
+                                df_services = pd.read_excel(xls, 'Services Sales')
+                                df_products = pd.read_excel(xls, 'Product Sales')
+                                df_prices = pd.read_excel(xls, 'Products Price List')
+                                st.session_state.raw_data = {'services': df_services, 'products': df_products, 'prices': df_prices}
+                                df_services['Date_dt'] = pd.to_datetime(df_services['Date'], dayfirst=True, errors='coerce')
+                                valid_dates = df_services['Date_dt'].dropna()
+                                available_months = sorted(valid_dates.dt.strftime('%B %Y').unique().tolist(), key=lambda x: datetime.strptime(x, '%B %Y'))
+                                st.markdown('<div class="section-title">Select Month</div>', unsafe_allow_html=True)
+                                st.session_state.selected_month = st.selectbox("", available_months, label_visibility="collapsed")
+                                if st.button("Continue to Configuration →", type="primary", use_container_width=True):
+                                    st.session_state.wizard_step = 2
+                                    st.rerun()
+                            except Exception as e: st.error(f"Error processing file: {e}")
 
-            elif st.session_state.wizard_step == 2:
-                data = st.session_state.raw_data
-                df_s = data['services']
-                df_s['Date_dt'] = pd.to_datetime(df_s['Date'], dayfirst=True, errors='coerce')
-                df_month = df_s[df_s['Date_dt'].dt.strftime('%B %Y') == st.session_state.selected_month].copy()
-                stylists = sorted(df_month['Stylist'].dropna().unique().tolist())
-                st.markdown('<div class="page-header">Staff Config</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="sub-header">Adjust settings for {len(stylists)} stylists in {st.session_state.selected_month}.</div>', unsafe_allow_html=True)
-                if 'active_stylist' not in st.session_state: st.session_state.active_stylist = stylists[0]
-                st.markdown('<div class="section-title">Select Stylist</div>', unsafe_allow_html=True)
-                tab_cols = st.columns(len(stylists))
-                for i, s in enumerate(stylists):
-                    if tab_cols[i].button(s, key=f"btn_{s}", type="primary" if st.session_state.active_stylist == s else "secondary", use_container_width=True):
-                        st.session_state.active_stylist = s
-                        st.rerun()
-                curr_s = st.session_state.active_stylist
-                if curr_s not in st.session_state.stylist_configs: st.session_state.stylist_configs[curr_s] = {'services': [], 'referrals': [0,0,0,0,0], 'reviews': [0,0,0,0,0]}
-                with st.container(border=True):
-                    st.markdown(f"### Targets for **{curr_s}**")
-                    all_services = sorted(df_month['Service'].unique().tolist())
-                    st.markdown('<div class="section-title" style="font-size: 1.1rem;">Service Commission (10%)</div>', unsafe_allow_html=True)
-                    st.session_state.stylist_configs[curr_s]['services'] = st.multiselect("Select services:", all_services, default=st.session_state.stylist_configs[curr_s]['services'], label_visibility="collapsed")
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.markdown('<div class="section-title" style="font-size: 1.1rem;">Weekly Referrals</div>', unsafe_allow_html=True)
-                        for w in range(4): st.session_state.stylist_configs[curr_s]['referrals'][w] = st.number_input(f"Week {w+1}", min_value=0, step=1, value=st.session_state.stylist_configs[curr_s]['referrals'][w], key=f"ref_{curr_s}_{w}")
-                    with c2:
-                        st.markdown('<div class="section-title" style="font-size: 1.1rem;">5-Star Reviews</div>', unsafe_allow_html=True)
-                        for w in range(4): st.session_state.stylist_configs[curr_s]['reviews'][w] = st.number_input(f"Week {w+1} ", min_value=0, step=1, value=st.session_state.stylist_configs[curr_s]['reviews'][w], key=f"rev_{curr_s}_{w}")
-                col_back, col_next = st.columns([1, 1])
-                with col_back:
-                    if st.button("← Back to Upload", use_container_width=True): st.session_state.wizard_step = 1; st.rerun()
-                with col_next:
-                    if st.button("Calculate Final Bonuses →", type="primary", use_container_width=True): st.session_state.wizard_step = 3; st.rerun()
+                elif st.session_state.wizard_step == 2:
+                    data = st.session_state.raw_data
+                    df_s = data['services']
+                    df_s['Date_dt'] = pd.to_datetime(df_s['Date'], dayfirst=True, errors='coerce')
+                    df_month = df_s[df_s['Date_dt'].dt.strftime('%B %Y') == st.session_state.selected_month].copy()
+                    stylists = sorted(df_month['Stylist'].dropna().unique().tolist())
+                    st.markdown('<div class="page-header">Staff Config</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="sub-header">Adjust settings for {len(stylists)} stylists in {st.session_state.selected_month}.</div>', unsafe_allow_html=True)
+                    if 'active_stylist' not in st.session_state: st.session_state.active_stylist = stylists[0]
+                    st.markdown('<div class="section-title">Select Stylist</div>', unsafe_allow_html=True)
+                    tab_cols = st.columns(len(stylists))
+                    for i, s in enumerate(stylists):
+                        if tab_cols[i].button(s, key=f"btn_{s}", type="primary" if st.session_state.active_stylist == s else "secondary", use_container_width=True):
+                            st.session_state.active_stylist = s
+                            st.rerun()
+                    curr_s = st.session_state.active_stylist
+                    if curr_s not in st.session_state.stylist_configs: st.session_state.stylist_configs[curr_s] = {'services': [], 'referrals': [0,0,0,0,0], 'reviews': [0,0,0,0,0]}
+                    with st.container(border=True):
+                        st.markdown(f"### Targets for **{curr_s}**")
+                        all_services = sorted(df_month['Service'].unique().tolist())
+                        st.markdown('<div class="section-title" style="font-size: 1.1rem;">Service Commission (10%)</div>', unsafe_allow_html=True)
+                        st.session_state.stylist_configs[curr_s]['services'] = st.multiselect("Select services:", all_services, default=st.session_state.stylist_configs[curr_s]['services'], label_visibility="collapsed")
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.markdown('<div class="section-title" style="font-size: 1.1rem;">Weekly Referrals</div>', unsafe_allow_html=True)
+                            for w in range(4): st.session_state.stylist_configs[curr_s]['referrals'][w] = st.number_input(f"Week {w+1}", min_value=0, step=1, value=st.session_state.stylist_configs[curr_s]['referrals'][w], key=f"ref_{curr_s}_{w}")
+                        with c2:
+                            st.markdown('<div class="section-title" style="font-size: 1.1rem;">5-Star Reviews</div>', unsafe_allow_html=True)
+                            for w in range(4): st.session_state.stylist_configs[curr_s]['reviews'][w] = st.number_input(f"Week {w+1} ", min_value=0, step=1, value=st.session_state.stylist_configs[curr_s]['reviews'][w], key=f"rev_{curr_s}_{w}")
+                    col_back, col_next = st.columns([1, 1])
+                    with col_back:
+                        if st.button("← Back to Upload", use_container_width=True): st.session_state.wizard_step = 1; st.rerun()
+                    with col_next:
+                        if st.button("Calculate Final Bonuses →", type="primary", use_container_width=True): st.session_state.wizard_step = 3; st.rerun()
 
-            elif st.session_state.wizard_step == 3:
-                data = st.session_state.raw_data
-                df_services = data['services']
-                df_products = data['products']
-                df_prices = data['prices']
-                df_services['Date_dt'] = pd.to_datetime(df_services['Date'], dayfirst=True, errors='coerce')
-                df_month = df_services[df_services['Date_dt'].dt.strftime('%B %Y') == st.session_state.selected_month].copy()
-                stylists = sorted(df_month['Stylist'].dropna().unique().tolist())
-                results = []
-                prod_breakdown = []
-                for s in stylists:
-                    df_s = df_month[df_month['Stylist'] == s]
-                    config = st.session_state.stylist_configs.get(s, {'services': [], 'referrals': [0,0,0,0,0], 'reviews': [0,0,0,0,0]})
-                    df_s['Week'] = df_s['Date_dt'].dt.isocalendar().week
-                    weekly_groups = df_s.groupby('Week')
-                    daily_bonus_total = 0
-                    for week, week_data in weekly_groups:
-                        weekly_sales = week_data['Amount'].sum()
-                        if calculations.calculate_weekly_bonus_eligibility(weekly_sales):
-                            daily_sales = week_data.groupby('Date_dt')['Amount'].sum()
-                            for ds in daily_sales: daily_bonus_total += calculations.calculate_daily_sales_bonus(ds)
-                    monthly_sales = df_s['Amount'].sum()
-                    stretch_bonus = calculations.calculate_stretch_bonus(monthly_sales)
-                    svc_sales = df_s[df_s['Service'].isin(config['services'])]['Amount'].sum()
-                    svc_comm = calculations.calculate_service_commission(svc_sales)
-                    prod_comm = 0
-                    staff_col_products = next((col for col in df_products.columns if col.lower() in ['staff', 'stylist', 'employee', 'name']), None)
-                    if staff_col_products:
-                        df_p_s = df_products[df_products[staff_col_products] == s]
-                        p_name_col = next((col for col in df_p_s.columns if col.lower() in ['product', 'item']), None)
-                        p_rev_col = next((col for col in df_p_s.columns if col.lower() in ['revenue', 'amount', 'sales']), None)
-                        if p_name_col and p_rev_col:
-                            for _, prow in df_p_s.iterrows():
-                                pname = prow[p_name_col]; prev = prow[p_rev_col]
-                                price_match = df_prices[df_prices['Name'] == pname]
-                                if not price_match.empty:
-                                    cost_price = price_match.iloc[0]['Cost Price']; profit = prev - cost_price
-                                    comm = calculations.calculate_product_commission(profit, 1); prod_comm += comm
-                                    prod_breakdown.append({"Stylist": s, "Product": pname, "Revenue": prev, "Cost": cost_price, "Profit": profit, "Comm": comm})
-                    # 5. Referrals
-                    ref_bonus = sum([calculations.calculate_referral_bonus(r) for r in config['referrals']])
-                    
-                    # 6. Reviews (AED 10 for every 5-star review, min 3 reviews/week)
-                    rev_bonus = 0
-                    for r in config['reviews']:
-                        if r >= 3:
-                            rev_bonus += r * 10
-                    
-                    total_bonus = daily_bonus_total + stretch_bonus + svc_comm + prod_comm + ref_bonus + rev_bonus
-                    results.append({"Stylist": s, "Monthly Sales": monthly_sales, "Daily Target Bonus": daily_bonus_total, "Stretch Bonus": stretch_bonus, "Service Commission": svc_comm, "Product Commission": prod_comm, "Referral Bonus": ref_bonus, "Review Bonus": rev_bonus, "Total Bonus": total_bonus})
+                elif st.session_state.wizard_step == 3:
+                    data = st.session_state.raw_data
+                    df_services = data['services']
+                    df_products = data['products']
+                    df_prices = data['prices']
+                    df_services['Date_dt'] = pd.to_datetime(df_services['Date'], dayfirst=True, errors='coerce')
+                    df_month = df_services[df_services['Date_dt'].dt.strftime('%B %Y') == st.session_state.selected_month].copy()
+                    stylists = sorted(df_month['Stylist'].dropna().unique().tolist())
+                    results = []
+                    prod_breakdown = []
+                    for s in stylists:
+                        df_s = df_month[df_month['Stylist'] == s]
+                        config = st.session_state.stylist_configs.get(s, {'services': [], 'referrals': [0,0,0,0,0], 'reviews': [0,0,0,0,0]})
+                        df_s['Week'] = df_s['Date_dt'].dt.isocalendar().week
+                        weekly_groups = df_s.groupby('Week')
+                        daily_bonus_total = 0
+                        for week, week_data in weekly_groups:
+                            weekly_sales = week_data['Amount'].sum()
+                            if calculations.calculate_weekly_bonus_eligibility(weekly_sales):
+                                daily_sales = week_data.groupby('Date_dt')['Amount'].sum()
+                                for ds in daily_sales: daily_bonus_total += calculations.calculate_daily_sales_bonus(ds)
+                        monthly_sales = df_s['Amount'].sum()
+                        stretch_bonus = calculations.calculate_stretch_bonus(monthly_sales)
+                        svc_sales = df_s[df_s['Service'].isin(config['services'])]['Amount'].sum()
+                        svc_comm = calculations.calculate_service_commission(svc_sales)
+                        prod_comm = 0
+                        staff_col_products = next((col for col in df_products.columns if col.lower() in ['staff', 'stylist', 'employee', 'name']), None)
+                        if staff_col_products:
+                            df_p_s = df_products[df_products[staff_col_products] == s]
+                            p_name_col = next((col for col in df_p_s.columns if col.lower() in ['product', 'item']), None)
+                            p_rev_col = next((col for col in df_p_s.columns if col.lower() in ['revenue', 'amount', 'sales']), None)
+                            if p_name_col and p_rev_col:
+                                for _, prow in df_p_s.iterrows():
+                                    pname = prow[p_name_col]; prev = prow[p_rev_col]
+                                    price_match = df_prices[df_prices['Name'] == pname]
+                                    if not price_match.empty:
+                                        cost_price = price_match.iloc[0]['Cost Price']; profit = prev - cost_price
+                                        comm = calculations.calculate_product_commission(profit, 1); prod_comm += comm
+                                        prod_breakdown.append({"Stylist": s, "Product": pname, "Revenue": prev, "Cost": cost_price, "Profit": profit, "Comm": comm})
+                        ref_bonus = sum([calculations.calculate_referral_bonus(r) for r in config['referrals']])
+                        rev_bonus = 0
+                        for r in config['reviews']:
+                            if r >= 3:
+                                rev_bonus += r * 10
+                        total_bonus = daily_bonus_total + stretch_bonus + svc_comm + prod_comm + ref_bonus + rev_bonus
+                        results.append({"Stylist": s, "Monthly Sales": monthly_sales, "Daily Target Bonus": daily_bonus_total, "Stretch Bonus": stretch_bonus, "Service Commission": svc_comm, "Product Commission": prod_comm, "Referral Bonus": ref_bonus, "Review Bonus": rev_bonus, "Total Bonus": total_bonus})
                 
                 df_results = pd.DataFrame(results)
                 with st.container(border=True):
@@ -1567,26 +1477,26 @@ def main():
 
         # --- Products Page ---
         elif page == "Products":
-            if 'raw_data' in st.session_state and 'prices' in st.session_state.raw_data:
-                with st.container(border=True):
-                    st.write("Current price list loaded from your monthly Excel file.")
-                    render_light_table(st.session_state.raw_data['prices'])
-            else: st.info("No price list loaded yet.")
+                if 'raw_data' in st.session_state and 'prices' in st.session_state.raw_data:
+                    with st.container(border=True):
+                        st.write("Current price list loaded from your monthly Excel file.")
+                        render_light_table(st.session_state.raw_data['prices'])
+                else: st.info("No price list loaded yet.")
 
         # --- History Log Page ---
         elif page == "History Log":
-            history = get_history_from_supabase()
-            if not history.empty:
-                if user_role == "stylist": history = history[history['stylist_name'] == user_display_name]
-                history['calculation_date_dt'] = pd.to_datetime(history['calculation_date'], format='ISO8601', errors='coerce')
-                history = history.dropna(subset=['calculation_date_dt'])
-                with st.container(border=True):
-                    st.markdown('<div class="section-title" style="margin-top:0;">Filter Reports</div>', unsafe_allow_html=True)
-                    f1, f2 = st.columns(2)
-                    period_filter = f1.multiselect("Select Period:", history['period'].unique())
-                    stylist_filter = f2.multiselect("Select Stylist:", history['stylist_name'].unique())
-                filtered_history = history.copy()
-                if period_filter: filtered_history = filtered_history[filtered_history['period'].isin(period_filter)]
+                history = get_history_from_supabase()
+                if not history.empty:
+                    if user_role == "stylist": history = history[history['stylist_name'] == user_display_name]
+                    history['calculation_date_dt'] = pd.to_datetime(history['calculation_date'], format='ISO8601', errors='coerce')
+                    history = history.dropna(subset=['calculation_date_dt'])
+                    with st.container(border=True):
+                        st.markdown('<div class="section-title" style="margin-top:0;">Filter Reports</div>', unsafe_allow_html=True)
+                        f1, f2 = st.columns(2)
+                        period_filter = f1.multiselect("Select Period:", history['period'].unique())
+                        stylist_filter = f2.multiselect("Select Stylist:", history['stylist_name'].unique())
+                    filtered_history = history.copy()
+                    if period_filter: filtered_history = filtered_history[filtered_history['period'].isin(period_filter)]
                 
                 # Sort by date newest to oldest
                 filtered_history = filtered_history.sort_values('calculation_date', ascending=False)
@@ -1706,47 +1616,47 @@ def main():
                                                     </div>
                                                 </div>
                                             """, unsafe_allow_html=True)
-            else: st.info("No historical data found.")
+                else: st.info("No historical data found.")
 
         # --- User Management Page ---
         elif page == "User Management" and user_role == "admin":
-            with st.container(border=True):
-                st.markdown('<div class="page-header" style="margin-top:0;">User Management</div>', unsafe_allow_html=True)
-                users = get_users_from_supabase()
-                if not users.empty:
-                    for _, u in users.iterrows():
-                        badge_class = "badge-admin" if u['role'] == "admin" else "badge-stylist"
-                        with st.container(border=True):
-                            col_info, col_actions = st.columns([3, 1])
-                            with col_info:
-                                st.markdown(f"""
-                                    <div style="display: flex; align-items: flex-start; gap: 1rem;">
-                                        <div style="background: #f1f5f9; padding: 0.75rem; border-radius: 12px; color: var(--primary);">
-                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                                        </div>
-                                        <div>
-                                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                                <span style="font-weight: 800; font-size: 1.1rem; color: #1e293b;">{u['name']}</span>
-                                                <span class="badge {badge_class}">{u['role']}</span>
+                with st.container(border=True):
+                    st.markdown('<div class="page-header" style="margin-top:0;">User Management</div>', unsafe_allow_html=True)
+                    users = get_users_from_supabase()
+                    if not users.empty:
+                        for _, u in users.iterrows():
+                            badge_class = "badge-admin" if u['role'] == "admin" else "badge-stylist"
+                            with st.container(border=True):
+                                col_info, col_actions = st.columns([3, 1])
+                                with col_info:
+                                    st.markdown(f"""
+                                        <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                                            <div style="background: #f1f5f9; padding: 0.75rem; border-radius: 12px; color: var(--primary);">
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                                             </div>
-                                            <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.1rem;">@{u['username']}</div>
+                                            <div>
+                                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                                    <span style="font-weight: 800; font-size: 1.1rem; color: #1e293b;">{u['name']}</span>
+                                                    <span class="badge {badge_class}">{u['role']}</span>
+                                                </div>
+                                                <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.1rem;">@{u['username']}</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                """, unsafe_allow_html=True)
-                            with col_actions:
-                                c1, c2 = st.columns(2)
-                                with c1:
-                                    with st.popover("Reset", use_container_width=True):
-                                        new_pw = st.text_input("New Password", type="password", key=f"input_pw_{u['username']}")
-                                        if st.button("Save", key=f"save_pw_{u['username']}", use_container_width=True, type="primary"):
-                                            if new_pw and save_user_to_supabase({"username": u['username'], "password": new_pw, "name": u['name'], "role": u['role']}): st.success("Updated!")
-                                            else: st.error("Failed.")
-                                with c2:
-                                    if u['username'] != username:
-                                        if st.button("Delete", key=f"del_{u['username']}", type="secondary", use_container_width=True):
-                                            if delete_user_from_supabase(u['username']): st.rerun()
-                                    else: st.button("Self", disabled=True, use_container_width=True)
-                else: st.info("No user accounts found.")
+                                    """, unsafe_allow_html=True)
+                                with col_actions:
+                                    c1, c2 = st.columns(2)
+                                    with c1:
+                                        with st.popover("Reset", use_container_width=True):
+                                            new_pw = st.text_input("New Password", type="password", key=f"input_pw_{u['username']}")
+                                            if st.button("Save", key=f"save_pw_{u['username']}", use_container_width=True, type="primary"):
+                                                if new_pw and save_user_to_supabase({"username": u['username'], "password": new_pw, "name": u['name'], "role": u['role']}): st.success("Updated!")
+                                                else: st.error("Failed.")
+                                    with c2:
+                                        if u['username'] != username:
+                                            if st.button("Delete", key=f"del_{u['username']}", type="secondary", use_container_width=True):
+                                                if delete_user_from_supabase(u['username']): st.rerun()
+                                        else: st.button("Self", disabled=True, use_container_width=True)
+                    else: st.info("No user accounts found.")
 
     elif st.session_state["authentication_status"] is False: st.error('Username/password is incorrect')
     elif st.session_state["authentication_status"] is None: st.warning('Please enter your username and password')
