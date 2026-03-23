@@ -228,13 +228,14 @@ def apply_custom_css():
         }
 
         [data-testid="stFileUploader"] [data-testid="stUploadedFile"] button {
-            background: #eef2ff !important;
+            background: white !important;
             color: var(--primary) !important;
-            border: 1px solid #c7d2fe !important;
-            border-radius: 0.7rem !important;
+            border: 1px solid #d7dfeb !important;
+            border-radius: 999px !important;
             min-width: 2rem !important;
             min-height: 2rem !important;
             padding: 0 !important;
+            box-shadow: none !important;
         }
 
         [data-testid="stFileUploader"] svg,
@@ -252,57 +253,36 @@ def apply_custom_css():
             background: transparent !important;
         }
 
-        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child,
-        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child {
-            background: transparent !important;
-            min-width: auto !important;
-            width: auto !important;
-            height: auto !important;
-            padding: 0 !important;
-            position: relative !important;
-        }
-
-        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child * ,
-        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child * {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-        }
-
-        /* Replace the solid upload squares with a soft icon badge */
         [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child > div,
         [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child > div {
-            width: 2.5rem !important;
-            height: 2.5rem !important;
-            min-width: 2.5rem !important;
-            min-height: 2.5rem !important;
-            border-radius: 0.85rem !important;
-            background: linear-gradient(135deg, #eef2ff 0%, #f8fbff 100%) !important;
-            border: 1px solid #c7d2fe !important;
+            width: 2.1rem !important;
+            height: 2.1rem !important;
+            min-width: 2.1rem !important;
+            min-height: 2.1rem !important;
+            border-radius: 0.7rem !important;
+            background: #eef2ff !important;
+            border: 1px solid #d9e0ff !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08) !important;
+            box-shadow: none !important;
         }
 
-        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child > div::before {
-            content: "\\2191" !important;
+        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child,
+        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child *,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child * {
+            opacity: 1 !important;
+            visibility: visible !important;
+            background-image: none !important;
+        }
+
+        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] svg,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] svg,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] button svg {
             color: var(--primary) !important;
-            font-size: 1.1rem !important;
-            font-weight: 900 !important;
-            line-height: 1 !important;
-        }
-
-        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child > div::before {
-            content: "\\1F4C4" !important;
-            color: var(--primary) !important;
-            font-size: 1rem !important;
-            line-height: 1 !important;
-        }
-
-        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child > div > *,
-        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child > div > * {
-            opacity: 0 !important;
+            fill: currentColor !important;
+            stroke: currentColor !important;
         }
 
         .stTextInput input, .stNumberInput input, .stSelectbox [data-testid="stSelectbox"], .stTextArea textarea, .stMultiSelect div[role="listbox"], [data-baseweb="select"] > div, [data-baseweb="input"] > div {
@@ -462,6 +442,8 @@ def apply_custom_css():
         [data-testid="stSidebar"], [data-testid="stSidebarContent"], [data-testid="stSidebarUserContent"], section[data-testid="stSidebar"] {
             background-color: #f8fafc !important;
             border-right: 1px solid var(--border) !important;
+            border-radius: 0 !important;
+            overflow: hidden !important;
         }
 
         [data-testid="stSidebar"] > div,
@@ -474,6 +456,11 @@ def apply_custom_css():
 
         [data-testid="stSidebar"]::before,
         [data-testid="stSidebar"]::after {
+            background: #f8fafc !important;
+        }
+
+        section[data-testid="stSidebar"] > div,
+        section[data-testid="stSidebar"] > div > div {
             background: #f8fafc !important;
         }
 
@@ -745,6 +732,26 @@ def apply_custom_css():
             border: none !important;
         }
 
+        .stButton>button[kind="secondary"],
+        .stButton>button[data-testid="stBaseButton-secondary"],
+        button[kind="secondary"],
+        button[data-testid="stBaseButton-secondary"] {
+            background: white !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        .stButton>button[kind="secondary"] *,
+        .stButton>button[data-testid="stBaseButton-secondary"] *,
+        button[kind="secondary"] *,
+        button[data-testid="stBaseButton-secondary"] * {
+            color: var(--text-main) !important;
+            fill: currentColor !important;
+            stroke: currentColor !important;
+            -webkit-text-fill-color: var(--text-main) !important;
+        }
+
         .stButton>button[kind="primary"] *,
         .stButton>button[kind="primary"] span {
             color: white !important;
@@ -755,6 +762,54 @@ def apply_custom_css():
         .stButton>button:hover,
         [data-testid="stForm"] button:hover {
             filter: brightness(0.98) !important;
+        }
+
+        [data-testid="stPopover"] button,
+        [data-testid="stPopover"] button[kind="secondary"],
+        [data-testid="stPopover"] button[data-testid="stBaseButton-secondary"],
+        [data-baseweb="popover"] button {
+            background: white !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        [data-testid="stPopover"] button *,
+        [data-baseweb="popover"] button * {
+            color: var(--text-main) !important;
+            fill: currentColor !important;
+            stroke: currentColor !important;
+        }
+
+        [data-testid="stExpander"] details,
+        [data-testid="stExpander"] details > div,
+        [data-testid="stExpander"] details summary {
+            background: white !important;
+            color: var(--text-main) !important;
+        }
+
+        [data-testid="stExpander"] details {
+            border: 1px solid var(--border) !important;
+            border-radius: 1rem !important;
+            overflow: hidden !important;
+        }
+
+        [data-testid="stExpander"] details summary {
+            border-bottom: 1px solid #eef2f7 !important;
+            min-height: 3rem !important;
+            padding: 0.65rem 1rem !important;
+        }
+
+        [data-testid="stExpander"] details summary:hover {
+            background: #f8fafc !important;
+        }
+
+        [data-testid="stExpander"] details summary *,
+        [data-testid="stExpander"] details svg,
+        [data-testid="stExpander"] details path {
+            color: var(--text-main) !important;
+            fill: currentColor !important;
+            stroke: currentColor !important;
         }
 
         /* Modern Dataframe Enhancement */
