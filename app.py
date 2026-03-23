@@ -259,6 +259,7 @@ def apply_custom_css():
             width: auto !important;
             height: auto !important;
             padding: 0 !important;
+            position: relative !important;
         }
 
         [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child * ,
@@ -266,6 +267,42 @@ def apply_custom_css():
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+        }
+
+        /* Replace the solid upload squares with a soft icon badge */
+        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child > div,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child > div {
+            width: 2.5rem !important;
+            height: 2.5rem !important;
+            min-width: 2.5rem !important;
+            min-height: 2.5rem !important;
+            border-radius: 0.85rem !important;
+            background: linear-gradient(135deg, #eef2ff 0%, #f8fbff 100%) !important;
+            border: 1px solid #c7d2fe !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08) !important;
+        }
+
+        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child > div::before {
+            content: "\\2191" !important;
+            color: var(--primary) !important;
+            font-size: 1.1rem !important;
+            font-weight: 900 !important;
+            line-height: 1 !important;
+        }
+
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child > div::before {
+            content: "\\1F4C4" !important;
+            color: var(--primary) !important;
+            font-size: 1rem !important;
+            line-height: 1 !important;
+        }
+
+        [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child > div > *,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child > div > * {
+            opacity: 0 !important;
         }
 
         .stTextInput input, .stNumberInput input, .stSelectbox [data-testid="stSelectbox"], .stTextArea textarea, .stMultiSelect div[role="listbox"], [data-baseweb="select"] > div, [data-baseweb="input"] > div {
@@ -281,6 +318,7 @@ def apply_custom_css():
         [data-baseweb="select"] > div {
             border-radius: 0.95rem !important;
             min-height: 3rem !important;
+            border: 1.5px solid #d7dfeb !important;
             box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03) !important;
             transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
         }
@@ -297,6 +335,9 @@ def apply_custom_css():
         .stNumberInput [data-baseweb="input"] > div {
             overflow: hidden !important;
             padding-right: 0 !important;
+            border: 1.5px solid #d7dfeb !important;
+            border-radius: 0.95rem !important;
+            background: white !important;
         }
 
         .stNumberInput input {
@@ -310,7 +351,7 @@ def apply_custom_css():
             background: #f8fafc !important;
             color: var(--primary) !important;
             border: none !important;
-            border-left: 1px solid var(--border) !important;
+            border-left: 1.5px solid #d7dfeb !important;
             min-width: 2.75rem !important;
             box-shadow: none !important;
         }
@@ -1322,6 +1363,8 @@ def main():
                         total_bonus = daily_bonus_total + stretch_bonus + svc_comm + prod_comm + ref_bonus + rev_bonus
                         results.append({"Stylist": s, "Monthly Sales": monthly_sales, "Daily Target Bonus": daily_bonus_total, "Stretch Bonus": stretch_bonus, "Service Commission": svc_comm, "Product Commission": prod_comm, "Referral Bonus": ref_bonus, "Review Bonus": rev_bonus, "Total Bonus": total_bonus})
                 
+                if st.session_state.wizard_step != 3:
+                    return
                 df_results = pd.DataFrame(results)
                 with st.container(border=True):
                     col_header, col_actions = st.columns([1.8, 1.2])
