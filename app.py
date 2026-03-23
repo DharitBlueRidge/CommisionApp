@@ -148,10 +148,49 @@ def apply_custom_css():
         }
 
         /* Harden file uploader and widgets to prevent dark mode bleed */
-        [data-testid="stFileUploadDropzone"], [data-testid="stFileUploader"], [data-testid="stUploadedFile"] {
+        [data-testid="stFileUploadDropzone"], [data-testid="stFileUploader"], [data-testid="stUploadedFile"], [data-testid="stFileUploaderDropzone"], [data-testid="stFileUploaderDropzoneInstructions"] {
             background-color: #f8fafc !important;
             border: 2px dashed var(--border) !important;
             color: var(--text-main) !important;
+        }
+
+        [data-testid="stFileUploader"] {
+            background: white !important;
+            border-radius: 1rem !important;
+        }
+
+        [data-testid="stFileUploader"] section,
+        [data-testid="stFileUploader"] section > div,
+        [data-testid="stFileUploader"] div[role="button"],
+        [data-testid="stFileUploader"] small,
+        [data-testid="stFileUploader"] span,
+        [data-testid="stFileUploader"] label {
+            background: #f8fafc !important;
+            color: var(--text-main) !important;
+            border-color: var(--border) !important;
+        }
+
+        [data-testid="stFileUploader"] button,
+        [data-testid="stFileUploader"] button span,
+        [data-testid="stFileUploader"] [kind="secondary"],
+        [data-testid="stFileUploader"] [data-testid="stBaseButton-secondary"] {
+            background: white !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: none !important;
+        }
+
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] {
+            background: white !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 0.85rem !important;
+        }
+
+        [data-testid="stFileUploader"] svg,
+        [data-testid="stFileUploader"] path {
+            fill: currentColor !important;
+            stroke: currentColor !important;
+            color: var(--primary) !important;
         }
 
         .stTextInput input, .stNumberInput input, .stSelectbox [data-testid="stSelectbox"], .stTextArea textarea, .stMultiSelect div[role="listbox"], [data-baseweb="select"] > div, [data-baseweb="input"] > div {
@@ -208,8 +247,27 @@ def apply_custom_css():
         }
 
         /* Sidebar navigation and menu look */
-        [data-testid="stSidebar"] {
+        [data-testid="stSidebar"], [data-testid="stSidebarContent"], [data-testid="stSidebarUserContent"], section[data-testid="stSidebar"] {
             background-color: #f8fafc !important;
+            border-right: 1px solid var(--border) !important;
+        }
+
+        [data-testid="stSidebar"] > div,
+        [data-testid="stSidebar"] > div > div,
+        [data-testid="stSidebarContent"] > div,
+        [data-testid="stSidebarNav"] ul,
+        [data-testid="stSidebarNavItems"] {
+            background: #f8fafc !important;
+        }
+
+        [data-testid="stSidebar"]::before,
+        [data-testid="stSidebar"]::after {
+            background: #f8fafc !important;
+        }
+
+        [data-testid="stSidebarResizeHandle"],
+        [data-testid="stSidebar"] [aria-label="Resize sidebar"] {
+            background: #f8fafc !important;
             border-right: 1px solid var(--border) !important;
         }
 
@@ -275,6 +333,19 @@ def apply_custom_css():
             font-weight: 700 !important;
             border-radius: 1rem !important;
             box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
+        }
+
+        [data-testid="stForm"] button[kind="primary"] *,
+        [data-testid="stForm"] button[kind="secondaryFormSubmit"] *,
+        .stButton button[kind="primary"] *,
+        .stButton button[data-testid="stBaseButton-primary"] *,
+        [data-testid="stForm"] button[kind="primary"] span,
+        [data-testid="stForm"] button[kind="secondaryFormSubmit"] span,
+        .stButton button[kind="primary"] span,
+        .stButton button[data-testid="stBaseButton-primary"] span {
+            color: white !important;
+            fill: white !important;
+            -webkit-text-fill-color: white !important;
         }
         
         /* Dataframes & Tables Hardening */
@@ -435,6 +506,13 @@ def apply_custom_css():
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%) !important;
             color: white !important;
             border: none !important;
+        }
+
+        .stButton>button[kind="primary"] *,
+        .stButton>button[kind="primary"] span {
+            color: white !important;
+            fill: white !important;
+            -webkit-text-fill-color: white !important;
         }
 
         .stButton>button:hover,
