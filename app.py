@@ -157,6 +157,7 @@ def apply_custom_css():
         [data-testid="stFileUploader"] {
             background: white !important;
             border-radius: 1rem !important;
+            padding: 0.25rem !important;
         }
 
         [data-testid="stFileUploader"] section,
@@ -170,6 +171,27 @@ def apply_custom_css():
             border-color: var(--border) !important;
         }
 
+        [data-testid="stFileUploaderDropzone"] {
+            border-radius: 1.1rem !important;
+            padding: 1rem !important;
+            min-height: 7.5rem !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        [data-testid="stFileUploaderDropzone"] > div {
+            background: #f8fafc !important;
+            border-radius: 0.9rem !important;
+        }
+
+        [data-testid="stFileUploaderDropzoneInstructions"] {
+            background: transparent !important;
+        }
+
+        [data-testid="stFileUploaderDropzoneInstructions"] small {
+            color: var(--text-muted) !important;
+        }
+
         [data-testid="stFileUploader"] button,
         [data-testid="stFileUploader"] button span,
         [data-testid="stFileUploader"] [kind="secondary"],
@@ -178,12 +200,15 @@ def apply_custom_css():
             color: var(--text-main) !important;
             border: 1px solid var(--border) !important;
             box-shadow: none !important;
+            border-radius: 0.85rem !important;
+            font-weight: 700 !important;
         }
 
         [data-testid="stFileUploader"] [data-testid="stUploadedFile"] {
             background: white !important;
             border: 1px solid var(--border) !important;
             border-radius: 0.85rem !important;
+            padding: 0.4rem 0.6rem !important;
         }
 
         [data-testid="stFileUploader"] svg,
@@ -198,11 +223,108 @@ def apply_custom_css():
             color: var(--text-main) !important;
             border: 1px solid var(--border) !important;
         }
-        
+
+        .stTextInput input,
+        .stNumberInput input,
+        .stTextArea textarea,
+        [data-baseweb="input"] > div,
+        [data-baseweb="select"] > div {
+            border-radius: 0.95rem !important;
+            min-height: 3rem !important;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03) !important;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+        }
+
+        .stTextInput input:focus,
+        .stNumberInput input:focus,
+        .stTextArea textarea:focus,
+        [data-baseweb="input"]:focus-within > div,
+        [data-baseweb="select"]:focus-within > div {
+            border-color: rgba(99, 102, 241, 0.5) !important;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12) !important;
+        }
+
+        .stNumberInput [data-baseweb="input"] > div {
+            overflow: hidden !important;
+            padding-right: 0 !important;
+        }
+
+        .stNumberInput input {
+            border: none !important;
+            box-shadow: none !important;
+            min-height: 3rem !important;
+        }
+
+        .stNumberInput button,
+        .stNumberInput [data-baseweb="input"] button {
+            background: #f8fafc !important;
+            color: var(--primary) !important;
+            border: none !important;
+            border-left: 1px solid var(--border) !important;
+            min-width: 2.75rem !important;
+            box-shadow: none !important;
+        }
+
+        .stNumberInput button:hover,
+        .stNumberInput [data-baseweb="input"] button:hover {
+            background: #eef2ff !important;
+        }
+
+        .stNumberInput button svg,
+        .stNumberInput button path {
+            fill: currentColor !important;
+            stroke: currentColor !important;
+            color: var(--primary) !important;
+        }
+
+        [data-baseweb="select"] {
+            border-radius: 0.95rem !important;
+        }
+
+        [data-baseweb="select"] > div {
+            padding-left: 0.75rem !important;
+            background: white !important;
+        }
+
+        [data-baseweb="select"] input,
+        [data-baseweb="select"] span,
+        [data-baseweb="select"] div {
+            color: var(--text-main) !important;
+        }
+
+        [data-baseweb="select"] input::placeholder {
+            color: #94a3b8 !important;
+            opacity: 1 !important;
+        }
+
+        [data-baseweb="select"] svg,
+        [data-baseweb="select"] path {
+            color: var(--primary) !important;
+            fill: currentColor !important;
+            stroke: currentColor !important;
+        }
+
         /* Dropdown Menu Items Visibility */
         [data-testid="stVirtualDropdown"] div, [data-baseweb="popover"] div, [data-baseweb="menu"] div {
             background-color: white !important;
             color: var(--text-main) !important;
+        }
+
+        [role="listbox"] {
+            border-radius: 0.95rem !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08) !important;
+            overflow: hidden !important;
+        }
+
+        [role="option"] {
+            padding: 0.75rem 0.9rem !important;
+        }
+
+        [role="option"][aria-selected="true"],
+        [role="option"]:hover {
+            background: #eef2ff !important;
+            color: var(--primary) !important;
         }
 
         /* Prevent labels from becoming white in dark mode */
@@ -291,6 +413,72 @@ def apply_custom_css():
         [data-testid="stSidebarNav"] li:hover {
             border-color: var(--primary) !important;
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08) !important;
+        }
+
+        .nav-pills,
+        .nav.nav-pills {
+            background: transparent !important;
+            gap: 0.35rem !important;
+        }
+
+        .nav-pills .nav-item,
+        .nav.nav-pills .nav-item {
+            background: transparent !important;
+        }
+
+        .nav-pills .nav-link,
+        .nav.nav-pills .nav-link {
+            background: white !important;
+            color: var(--text-muted) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 0.8rem !important;
+            padding: 0.7rem 1rem !important;
+            font-weight: 700 !important;
+            min-height: 2.7rem !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03) !important;
+        }
+
+        .nav-pills .nav-link:hover,
+        .nav.nav-pills .nav-link:hover {
+            background: #f8fafc !important;
+            color: var(--primary) !important;
+            border-color: #c7d2fe !important;
+        }
+
+        .nav-pills .nav-link.active,
+        .nav.nav-pills .nav-link.active {
+            background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%) !important;
+            color: var(--primary) !important;
+            border-color: #c7d2fe !important;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.08) !important;
+        }
+
+        [role="radiogroup"] {
+            gap: 0.75rem !important;
+        }
+
+        [role="radiogroup"] label {
+            background: white !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 999px !important;
+            padding: 0.45rem 1rem !important;
+            min-height: 2.6rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03) !important;
+        }
+
+        [role="radiogroup"] label:hover {
+            border-color: #c7d2fe !important;
+            background: #f8fafc !important;
+        }
+
+        [role="radiogroup"] label[data-selected="true"] {
+            background: #eef2ff !important;
+            border-color: #c7d2fe !important;
         }
 
         [data-testid="stSidebar"] .stMarkdown h3 {
@@ -1127,7 +1315,42 @@ def main():
                             st.success(f"Report Archived!")
                     
                     st.markdown('<hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border);">', unsafe_allow_html=True)
-                    active_tab = option_menu(menu_title=None, options=["Overview"] + stylists, icons=["grid-3x3-gap"] + ["person"] * len(stylists), orientation="horizontal", styles={"container": {"padding": "0.2rem!important", "background-color": "#f8fafc", "border-radius": "0.75rem", "border": "1px solid #e2e8f0"}, "icon": {"color": "var(--primary)", "font-size": "0.9rem"}, "nav-link": {"font-size": "0.85rem", "text-align": "center", "margin":"0.1rem", "border-radius": "0.5rem", "color": "var(--text-muted)", "font-weight": "600", "transition": "all 0.2s ease"}, "nav-link-selected": {"background-color": "white", "color": "var(--primary)", "font-weight": "700", "border": "1px solid #e2e8f0"}})
+                    active_tab = option_menu(
+                        menu_title=None,
+                        options=["Overview"] + stylists,
+                        icons=["grid-3x3-gap"] + ["person"] * len(stylists),
+                        orientation="horizontal",
+                        styles={
+                            "container": {
+                                "padding": "0.35rem!important",
+                                "background-color": "#ffffff",
+                                "border-radius": "1rem",
+                                "border": "1px solid #e2e8f0",
+                                "box-shadow": "0 8px 24px rgba(15,23,42,0.04)",
+                            },
+                            "icon": {
+                                "color": "#6366f1",
+                                "font-size": "0.9rem",
+                            },
+                            "nav-link": {
+                                "font-size": "0.88rem",
+                                "text-align": "center",
+                                "margin": "0.1rem",
+                                "border-radius": "0.75rem",
+                                "color": "#64748b",
+                                "font-weight": "700",
+                                "transition": "all 0.2s ease",
+                                "background-color": "#ffffff",
+                                "border": "1px solid #e2e8f0",
+                            },
+                            "nav-link-selected": {
+                                "background-color": "#eef2ff",
+                                "color": "#6366f1",
+                                "font-weight": "800",
+                                "border": "1px solid #c7d2fe",
+                            },
+                        },
+                    )
                     
                     if active_tab == "Overview":
                         c1, c2 = st.columns(2)
