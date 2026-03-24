@@ -2219,8 +2219,19 @@ def main():
                     with st.container(border=True):
                         st.markdown(f"### Targets for **{curr_s}**")
                         all_services = sorted(df_month['Service'].unique().tolist())
+                        valid_default_services = [
+                            service
+                            for service in st.session_state.stylist_configs[curr_s]['services']
+                            if service in all_services
+                        ]
+                        st.session_state.stylist_configs[curr_s]['services'] = valid_default_services
                         st.markdown('<div class="section-title" style="font-size: 1.1rem;">Service Commission (10%)</div>', unsafe_allow_html=True)
-                        st.session_state.stylist_configs[curr_s]['services'] = st.multiselect("Select services:", all_services, default=st.session_state.stylist_configs[curr_s]['services'], label_visibility="collapsed")
+                        st.session_state.stylist_configs[curr_s]['services'] = st.multiselect(
+                            "Select services:",
+                            all_services,
+                            default=valid_default_services,
+                            label_visibility="collapsed",
+                        )
                         c1, c2 = st.columns(2)
                         with c1:
                             st.markdown('<div class="section-title" style="font-size: 1.1rem;">Weekly Referrals</div>', unsafe_allow_html=True)
