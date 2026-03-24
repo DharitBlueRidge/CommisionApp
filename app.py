@@ -10,6 +10,28 @@ import json
 import altair as alt
 from streamlit_option_menu import option_menu
 import base64
+from urllib.parse import quote
+
+SERVICE_SHEET_ALIASES = {
+    "Date": ["date", "service date", "transaction date"],
+    "Stylist": ["stylist", "staff", "employee", "provider", "therapist", "name"],
+    "Service": ["service", "service name", "item", "treatment", "description"],
+    "Amount": ["amount", "gross amount", "cross amount", "gross sales", "sales", "revenue", "total"],
+}
+
+PRODUCT_SALES_ALIASES = {
+    "Stylist": ["stylist", "staff", "employee", "name", "provider"],
+    "Product": ["product", "item", "product name", "name"],
+    "Revenue": ["revenue", "amount", "sales", "sell price", "sale value", "gross amount"],
+    "Quantity": ["quantity", "qty", "units", "count"],
+    "Date": ["date", "sale date", "transaction date", "date & time", "datetime"],
+}
+
+PRICE_LIST_ALIASES = {
+    "Name": ["name", "product", "product name", "item"],
+    "Cost Price": ["cost price", "cost", "unit cost", "buy price"],
+    "Sell Price": ["sell price", "selling price", "price", "unit price"],
+}
 
 # --- Constants & Page Config ---
 PAGE_TITLE = "Bonus & Commission Dashboard"
@@ -107,6 +129,33 @@ def delete_user_from_supabase(username):
     except Exception:
         return False
 
+def delete_history_session_from_supabase(run_ts):
+    encoded_run_ts = quote(str(run_ts), safe="")
+    history_url = f"{st.secrets['supabase']['url']}/rest/v1/calculation_history?calculation_date=eq.{encoded_run_ts}"
+    trend_url = f"{st.secrets['supabase']['url']}/rest/v1/calculation_trend_history?run_ts=eq.{encoded_run_ts}"
+    headers = {
+        "apikey": st.secrets["supabase"]["key"],
+        "Authorization": f"Bearer {st.secrets['supabase']['key']}",
+        "Prefer": "return=minimal",
+    }
+    try:
+        history_response = requests.delete(history_url, headers=headers)
+        if history_response.status_code not in [200, 204]:
+            return False, history_response.text
+
+        trend_response = requests.delete(trend_url, headers=headers)
+        if trend_response.status_code not in [200, 204]:
+            body = trend_response.text.strip()
+            if "relation" not in body.lower() and "does not exist" not in body.lower():
+                return False, body
+
+        st.cache_data.clear()
+        st.session_state.pop("uploaded_trend_records", None)
+        st.session_state["trend_history_status"] = "ok"
+        return True, ""
+    except Exception as exc:
+        return False, str(exc)
+
 @st.cache_data(ttl=600)
 def get_trend_history_from_supabase():
     url = f"{st.secrets['supabase']['url']}/rest/v1/calculation_trend_history?select=*"
@@ -170,6 +219,144 @@ def slugify_username(value):
     clean = "_".join(part for part in clean.split("_") if part)
     return clean or "stylist"
 
+def normalize_dataframe_columns(df, aliases):
+    renamed_df = df.copy()
+    reverse_lookup = {}
+    for canonical, alias_list in aliases.items():
+        for alias in alias_list:
+            reverse_lookup[str(alias).strip().lower()] = canonical
+
+    rename_map = {}
+    for column in renamed_df.columns:
+        canonical = reverse_lookup.get(str(column).strip().lower())
+        if canonical and canonical not in renamed_df.columns:
+            rename_map[column] = canonical
+
+    if rename_map:
+        renamed_df = renamed_df.rename(columns=rename_map)
+    return renamed_df
+
+def prepare_workbook_frames(df_services, df_products, df_prices):
+    services = normalize_dataframe_columns(df_services, SERVICE_SHEET_ALIASES)
+    products = normalize_dataframe_columns(df_products, PRODUCT_SALES_ALIASES)
+    prices = normalize_dataframe_columns(df_prices, PRICE_LIST_ALIASES)
+
+    if "Amount" in services.columns:
+        services["Amount"] = pd.to_numeric(services["Amount"], errors="coerce")
+
+    if "Revenue" in products.columns:
+        products["Revenue"] = pd.to_numeric(products["Revenue"], errors="coerce")
+    if "Quantity" in products.columns:
+        products["Quantity"] = pd.to_numeric(products["Quantity"], errors="coerce")
+
+    if "Cost Price" in prices.columns:
+        prices["Cost Price"] = pd.to_numeric(prices["Cost Price"], errors="coerce")
+    if "Sell Price" in prices.columns:
+        prices["Sell Price"] = pd.to_numeric(prices["Sell Price"], errors="coerce")
+
+    return services, products, prices
+
+def ensure_week_input_length(config, week_count):
+    normalized = dict(config or {})
+    normalized.setdefault("services", [])
+    normalized.setdefault("referrals", [])
+    normalized.setdefault("reviews", [])
+
+    for key in ["referrals", "reviews"]:
+        values = list(normalized.get(key, []))
+        if len(values) < week_count:
+            values.extend([0] * (week_count - len(values)))
+        normalized[key] = values[:week_count]
+    return normalized
+
+def get_product_sales_columns(df_products):
+    if df_products is None or df_products.empty:
+        return {}
+    return {
+        "staff": "Stylist" if "Stylist" in df_products.columns else next((col for col in df_products.columns if str(col).lower() in ["staff", "stylist", "employee", "name"]), None),
+        "product": "Product" if "Product" in df_products.columns else next((col for col in df_products.columns if str(col).lower() in ["product", "item"]), None),
+        "revenue": "Revenue" if "Revenue" in df_products.columns else next((col for col in df_products.columns if str(col).lower() in ["revenue", "amount", "sales"]), None),
+        "quantity": "Quantity" if "Quantity" in df_products.columns else next((col for col in df_products.columns if str(col).lower() in ["quantity", "qty", "units"]), None),
+        "date": "Date" if "Date" in df_products.columns else next((col for col in df_products.columns if str(col).lower() in ["date", "sale date"]), None),
+    }
+
+def calculate_product_commission_entries(df_products, df_prices, stylist_name, selected_month=None):
+    if df_products is None or df_products.empty or df_prices is None or df_prices.empty:
+        return 0.0, []
+
+    columns = get_product_sales_columns(df_products)
+    staff_col = columns.get("staff")
+    product_col = columns.get("product")
+    revenue_col = columns.get("revenue")
+    quantity_col = columns.get("quantity")
+    date_col = columns.get("date")
+
+    if not staff_col or not product_col:
+        return 0.0, []
+
+    stylist_products = df_products[df_products[staff_col].astype(str).str.strip() == str(stylist_name).strip()].copy()
+    if stylist_products.empty:
+        return 0.0, []
+
+    if date_col and selected_month:
+        stylist_products["_product_date"] = pd.to_datetime(stylist_products[date_col], dayfirst=True, errors="coerce")
+        stylist_products = stylist_products[stylist_products["_product_date"].dt.strftime("%B %Y") == selected_month]
+
+    total_commission = 0.0
+    breakdown = []
+    for _, product_row in stylist_products.iterrows():
+        product_name = str(product_row.get(product_col, "")).strip()
+        if not product_name:
+            continue
+
+        price_match = df_prices[df_prices["Name"].astype(str).str.strip() == product_name]
+        if price_match.empty:
+            continue
+
+        quantity = 1
+        if quantity_col:
+            parsed_quantity = pd.to_numeric(product_row.get(quantity_col), errors="coerce")
+            if pd.notna(parsed_quantity) and parsed_quantity > 0:
+                quantity = float(parsed_quantity)
+
+        unit_cost = pd.to_numeric(price_match.iloc[0]["Cost Price"], errors="coerce")
+        if pd.isna(unit_cost):
+            continue
+
+        revenue_value = None
+        if revenue_col:
+            revenue_value = pd.to_numeric(product_row.get(revenue_col), errors="coerce")
+
+        if pd.isna(revenue_value):
+            sell_price = pd.to_numeric(price_match.iloc[0].get("Sell Price"), errors="coerce")
+            if pd.notna(sell_price):
+                revenue_value = sell_price * quantity
+
+        if pd.isna(revenue_value):
+            continue
+
+        profit_per_unit = (float(revenue_value) / quantity) - float(unit_cost) if quantity else float(revenue_value) - float(unit_cost)
+        commission = calculations.calculate_product_commission(profit_per_unit, quantity)
+        total_commission += commission
+        breakdown.append({
+            "product": product_name,
+            "quantity": quantity,
+            "revenue": float(revenue_value),
+            "cost_price": float(unit_cost),
+            "profit": float(profit_per_unit * quantity),
+            "commission": float(commission),
+            "date": product_row.get("_product_date") if "_product_date" in product_row else None,
+        })
+
+    return total_commission, breakdown
+
+def get_month_week_keys(df_month):
+    if df_month is None or df_month.empty or "Date_dt" not in df_month.columns:
+        return []
+    parsed_dates = pd.to_datetime(df_month["Date_dt"], errors="coerce").dropna()
+    week_keys = (((parsed_dates.dt.day - 1) // 7) + 1).astype(int).drop_duplicates().tolist()
+    return sorted(week_keys)
+
 def validate_workbook_data(df_services, df_products, df_prices):
     issues = []
 
@@ -190,6 +377,15 @@ def validate_workbook_data(df_services, df_products, df_prices):
 
     if "Name" not in df_prices.columns or "Cost Price" not in df_prices.columns:
         issues.append("Products Price List must contain 'Name' and 'Cost Price' columns.")
+    elif pd.to_numeric(df_prices["Cost Price"], errors="coerce").notna().sum() == 0:
+        issues.append("Products Price List does not contain any readable product cost prices.")
+
+    if not df_products.empty:
+        product_columns = get_product_sales_columns(df_products)
+        if not product_columns.get("staff") or not product_columns.get("product"):
+            issues.append("Product Sales must contain a stylist/staff column and a product column.")
+        if not product_columns.get("revenue") and "Sell Price" not in df_prices.columns:
+            issues.append("Product Sales needs a revenue column, or Products Price List must include 'Sell Price'.")
 
     if df_services.empty:
         issues.append("Services Sales sheet is empty.")
@@ -260,28 +456,31 @@ def build_trend_records(df_services, df_products, df_prices, stylist_configs, se
         if stylist_df.empty:
             continue
 
-        config = stylist_configs.get(stylist, {"services": [], "referrals": [0, 0, 0, 0, 0], "reviews": [0, 0, 0, 0, 0]})
         stylist_df["trend_date"] = pd.to_datetime(stylist_df["Date_dt"]).dt.normalize()
-        stylist_df["week_start"] = stylist_df["trend_date"] - pd.to_timedelta(stylist_df["trend_date"].dt.weekday, unit="D")
+        stylist_df["month_week_index"] = ((stylist_df["trend_date"].dt.day - 1) // 7) + 1
+        weekly_groups = stylist_df.groupby("month_week_index")
+        ordered_weeks = sorted(weekly_groups.groups.keys())
+        config = ensure_week_input_length(
+            stylist_configs.get(stylist, {"services": [], "referrals": [], "reviews": []}),
+            max(len(ordered_weeks), 1),
+        )
 
         daily_revenue = stylist_df.groupby("trend_date")["Amount"].sum().to_dict()
         eligible_services = stylist_df[stylist_df["Service"].isin(config.get("services", []))]
         daily_service_commission = (eligible_services.groupby("trend_date")["Amount"].sum() * 0.10).to_dict()
 
         daily_bonus = {}
-        weekly_groups = stylist_df.groupby("week_start")
-        ordered_weeks = sorted(weekly_groups.groups.keys())
         week_anchor_dates = {}
 
-        for week_start, week_data in weekly_groups:
-            week_anchor_dates[week_start] = pd.to_datetime(week_data["trend_date"]).min().normalize()
+        for week_index, week_data in weekly_groups:
+            week_anchor_dates[week_index] = pd.to_datetime(week_data["trend_date"]).min().normalize()
             weekly_sales = week_data["Amount"].sum()
             if calculations.calculate_weekly_bonus_eligibility(weekly_sales):
                 for trend_date, amount in week_data.groupby("trend_date")["Amount"].sum().items():
                     daily_bonus[trend_date] = daily_bonus.get(trend_date, 0) + calculations.calculate_daily_sales_bonus(amount)
 
-        for idx, week_start in enumerate(ordered_weeks):
-            anchor_date = week_anchor_dates.get(week_start, week_start)
+        for idx, week_index in enumerate(ordered_weeks):
+            anchor_date = week_anchor_dates.get(week_index)
             if idx < len(config.get("referrals", [])):
                 daily_bonus[anchor_date] = daily_bonus.get(anchor_date, 0) + calculations.calculate_referral_bonus(config["referrals"][idx])
             if idx < len(config.get("reviews", [])):
@@ -292,36 +491,17 @@ def build_trend_records(df_services, df_products, df_prices, stylist_configs, se
         daily_bonus[month_end] = daily_bonus.get(month_end, 0) + calculations.calculate_stretch_bonus(monthly_sales)
 
         product_commission_by_date = {}
-        if not product_df.empty and not price_df.empty:
-            staff_col = next((col for col in product_df.columns if str(col).lower() in ["staff", "stylist", "employee", "name"]), None)
-            product_name_col = next((col for col in product_df.columns if str(col).lower() in ["product", "item"]), None)
-            product_revenue_col = next((col for col in product_df.columns if str(col).lower() in ["revenue", "amount", "sales"]), None)
-            product_date_col = next((col for col in product_df.columns if str(col).lower() in ["date", "sale date"]), None)
-
-            if staff_col and product_name_col and product_revenue_col:
-                stylist_products = product_df[product_df[staff_col] == stylist].copy()
-                if product_date_col and not stylist_products.empty:
-                    stylist_products["ProductDate"] = pd.to_datetime(stylist_products[product_date_col], dayfirst=True, errors="coerce")
-                    stylist_products = stylist_products[stylist_products["ProductDate"].dt.strftime('%B %Y') == selected_month]
-
-                for _, prod_row in stylist_products.iterrows():
-                    product_name = prod_row[product_name_col]
-                    product_revenue = prod_row[product_revenue_col]
-                    price_match = price_df[price_df["Name"] == product_name]
-                    if price_match.empty:
-                        continue
-
-                    cost_price = price_match.iloc[0]["Cost Price"]
-                    commission = calculations.calculate_product_commission(product_revenue - cost_price, 1)
-                    trend_date = month_end
-                    if product_date_col and pd.notna(prod_row.get("ProductDate")):
-                        trend_date = pd.to_datetime(prod_row["ProductDate"]).normalize()
-                    product_commission_by_date[trend_date] = product_commission_by_date.get(trend_date, 0) + commission
+        _, product_breakdown = calculate_product_commission_entries(product_df, price_df, stylist, selected_month=selected_month)
+        for item in product_breakdown:
+            trend_date = month_end
+            if item.get("date") is not None and pd.notna(item["date"]):
+                trend_date = pd.to_datetime(item["date"]).normalize()
+            product_commission_by_date[trend_date] = product_commission_by_date.get(trend_date, 0) + float(item["commission"])
 
         all_dates = sorted(set(daily_revenue.keys()) | set(daily_service_commission.keys()) | set(daily_bonus.keys()) | set(product_commission_by_date.keys()))
         for trend_date in all_dates:
-            week_start = trend_date - pd.Timedelta(days=trend_date.weekday())
-            week_anchor_date = week_anchor_dates.get(week_start, trend_date)
+            week_index = int(((pd.Timestamp(trend_date).day - 1) // 7) + 1)
+            week_anchor_date = week_anchor_dates.get(week_index, trend_date)
             total_bonus = (
                 daily_bonus.get(trend_date, 0)
                 + daily_service_commission.get(trend_date, 0)
@@ -2151,6 +2331,7 @@ def main():
                                 df_services = pd.read_excel(xls, 'Services Sales')
                                 df_products = pd.read_excel(xls, 'Product Sales')
                                 df_prices = pd.read_excel(xls, 'Products Price List')
+                                df_services, df_products, df_prices = prepare_workbook_frames(df_services, df_products, df_prices)
                                 validation_issues = validate_workbook_data(df_services, df_products, df_prices)
                                 if validation_issues:
                                     for issue in validation_issues:
@@ -2215,7 +2396,13 @@ def main():
                             st.session_state.active_stylist = s
                             st.rerun()
                     curr_s = st.session_state.active_stylist
-                    if curr_s not in st.session_state.stylist_configs: st.session_state.stylist_configs[curr_s] = {'services': [], 'referrals': [0,0,0,0,0], 'reviews': [0,0,0,0,0]}
+                    month_week_keys = get_month_week_keys(df_month)
+                    if curr_s not in st.session_state.stylist_configs:
+                        st.session_state.stylist_configs[curr_s] = {'services': [], 'referrals': [], 'reviews': []}
+                    st.session_state.stylist_configs[curr_s] = ensure_week_input_length(
+                        st.session_state.stylist_configs[curr_s],
+                        max(len(month_week_keys), 1),
+                    )
                     with st.container(border=True):
                         st.markdown(f"### Targets for **{curr_s}**")
                         all_services = sorted(df_month['Service'].unique().tolist())
@@ -2235,10 +2422,24 @@ def main():
                         c1, c2 = st.columns(2)
                         with c1:
                             st.markdown('<div class="section-title" style="font-size: 1.1rem;">Weekly Referrals</div>', unsafe_allow_html=True)
-                            for w in range(4): st.session_state.stylist_configs[curr_s]['referrals'][w] = st.number_input(f"Week {w+1}", min_value=0, step=1, value=st.session_state.stylist_configs[curr_s]['referrals'][w], key=f"ref_{curr_s}_{w}")
+                            for w in range(max(len(month_week_keys), 1)):
+                                st.session_state.stylist_configs[curr_s]['referrals'][w] = st.number_input(
+                                    f"Week {w+1}",
+                                    min_value=0,
+                                    step=1,
+                                    value=int(st.session_state.stylist_configs[curr_s]['referrals'][w]),
+                                    key=f"ref_{curr_s}_{w}",
+                                )
                         with c2:
                             st.markdown('<div class="section-title" style="font-size: 1.1rem;">5-Star Reviews</div>', unsafe_allow_html=True)
-                            for w in range(4): st.session_state.stylist_configs[curr_s]['reviews'][w] = st.number_input(f"Week {w+1} ", min_value=0, step=1, value=st.session_state.stylist_configs[curr_s]['reviews'][w], key=f"rev_{curr_s}_{w}")
+                            for w in range(max(len(month_week_keys), 1)):
+                                st.session_state.stylist_configs[curr_s]['reviews'][w] = st.number_input(
+                                    f"Week {w+1} ",
+                                    min_value=0,
+                                    step=1,
+                                    value=int(st.session_state.stylist_configs[curr_s]['reviews'][w]),
+                                    key=f"rev_{curr_s}_{w}",
+                                )
                     col_back, col_next = st.columns([1, 1])
                     with col_back:
                         if st.button("← Back to Upload", use_container_width=True): st.session_state.wizard_step = 1; st.rerun()
@@ -2257,8 +2458,12 @@ def main():
                     prod_breakdown = []
                     for s in stylists:
                         df_s = df_month[df_month['Stylist'] == s]
-                        config = st.session_state.stylist_configs.get(s, {'services': [], 'referrals': [0,0,0,0,0], 'reviews': [0,0,0,0,0]})
-                        df_s['Week'] = df_s['Date_dt'].dt.isocalendar().week
+                        week_count = max(len(get_month_week_keys(df_s)), 1)
+                        config = ensure_week_input_length(
+                            st.session_state.stylist_configs.get(s, {'services': [], 'referrals': [], 'reviews': []}),
+                            week_count,
+                        )
+                        df_s['Week'] = ((df_s['Date_dt'].dt.day - 1) // 7) + 1
                         weekly_groups = df_s.groupby('Week')
                         daily_bonus_total = 0
                         for week, week_data in weekly_groups:
@@ -2270,25 +2475,24 @@ def main():
                         stretch_bonus = calculations.calculate_stretch_bonus(monthly_sales)
                         svc_sales = df_s[df_s['Service'].isin(config['services'])]['Amount'].sum()
                         svc_comm = calculations.calculate_service_commission(svc_sales)
-                        prod_comm = 0
-                        staff_col_products = next((col for col in df_products.columns if col.lower() in ['staff', 'stylist', 'employee', 'name']), None)
-                        if staff_col_products:
-                            df_p_s = df_products[df_products[staff_col_products] == s]
-                            p_name_col = next((col for col in df_p_s.columns if col.lower() in ['product', 'item']), None)
-                            p_rev_col = next((col for col in df_p_s.columns if col.lower() in ['revenue', 'amount', 'sales']), None)
-                            if p_name_col and p_rev_col:
-                                for _, prow in df_p_s.iterrows():
-                                    pname = prow[p_name_col]; prev = prow[p_rev_col]
-                                    price_match = df_prices[df_prices['Name'] == pname]
-                                    if not price_match.empty:
-                                        cost_price = price_match.iloc[0]['Cost Price']; profit = prev - cost_price
-                                        comm = calculations.calculate_product_commission(profit, 1); prod_comm += comm
-                                        prod_breakdown.append({"Stylist": s, "Product": pname, "Revenue": prev, "Cost": cost_price, "Profit": profit, "Comm": comm})
+                        prod_comm, stylist_product_breakdown = calculate_product_commission_entries(
+                            df_products,
+                            df_prices,
+                            s,
+                            selected_month=st.session_state.selected_month,
+                        )
+                        for item in stylist_product_breakdown:
+                            prod_breakdown.append({
+                                "Stylist": s,
+                                "Product": item["product"],
+                                "Quantity": item["quantity"],
+                                "Revenue": item["revenue"],
+                                "Cost": item["cost_price"],
+                                "Profit": item["profit"],
+                                "Comm": item["commission"],
+                            })
                         ref_bonus = sum([calculations.calculate_referral_bonus(r) for r in config['referrals']])
-                        rev_bonus = 0
-                        for r in config['reviews']:
-                            if r >= 3:
-                                rev_bonus += r * 10
+                        rev_bonus = sum([calculations.calculate_review_bonus(r, idx + 1) for idx, r in enumerate(config['reviews'])])
                         total_bonus = daily_bonus_total + stretch_bonus + svc_comm + prod_comm + ref_bonus + rev_bonus
                         results.append({"Stylist": s, "Monthly Sales": monthly_sales, "Daily Target Bonus": daily_bonus_total, "Stretch Bonus": stretch_bonus, "Service Commission": svc_comm, "Product Commission": prod_comm, "Referral Bonus": ref_bonus, "Review Bonus": rev_bonus, "Total Bonus": total_bonus})
                 
@@ -2521,6 +2725,24 @@ def main():
                         if session_df.empty: continue
                     period = session_df['period'].iloc[0]; date_str = session_df['calculation_date_dt'].iloc[0].strftime('%d %b %Y')
                     with st.expander(f"📅 {period} — {date_str} — AED {session_df['monthly_sales'].sum():,.0f} Revenue"):
+                        if user_role == "admin":
+                            delete_cols = st.columns([3.4, 1])
+                            with delete_cols[0]:
+                                st.caption("Delete this archived session to remove it from both History Log and dashboard analytics.")
+                            with delete_cols[1]:
+                                if st.button(
+                                    "Delete Session",
+                                    key=f"delete_history_session_{timestamp}",
+                                    type="secondary",
+                                    use_container_width=True,
+                                ):
+                                    deleted, error_message = delete_history_session_from_supabase(timestamp)
+                                    if deleted:
+                                        st.success("Archived session deleted.")
+                                        st.rerun()
+                                    else:
+                                        st.error(f"Could not delete this archived session. {error_message}")
+
                         # --- Session Overview Section ---
                         total_revenue = session_df['monthly_sales'].sum()
                         total_payouts = session_df['total_bonus'].sum()
