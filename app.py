@@ -107,6 +107,289 @@ def delete_user_from_supabase(username):
     except Exception:
         return False
 
+@st.cache_data(ttl=600)
+def get_trend_history_from_supabase():
+    url = f"{st.secrets['supabase']['url']}/rest/v1/calculation_trend_history?select=*"
+    headers = {
+        "apikey": st.secrets["supabase"]["key"],
+        "Authorization": f"Bearer {st.secrets['supabase']['key']}"
+    }
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            st.session_state["trend_history_status"] = "ok"
+            df = pd.DataFrame(response.json())
+            if "trend_date" in df.columns:
+                df["trend_date"] = pd.to_datetime(df["trend_date"], errors="coerce")
+            if "trend_week_start" in df.columns:
+                df["trend_week_start"] = pd.to_datetime(df["trend_week_start"], errors="coerce")
+            return df
+        st.session_state["trend_history_status"] = f"read_failed:{response.status_code}"
+        return pd.DataFrame()
+    except Exception:
+        st.session_state["trend_history_status"] = "read_exception"
+        return pd.DataFrame()
+
+def save_trend_history_to_supabase(records):
+    if not records:
+        return True, ""
+
+    url = f"{st.secrets['supabase']['url']}/rest/v1/calculation_trend_history"
+    headers = {
+        "apikey": st.secrets["supabase"]["key"],
+        "Authorization": f"Bearer {st.secrets['supabase']['key']}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal"
+    }
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(records))
+        if response.status_code in [200, 201]:
+            st.cache_data.clear()
+            st.session_state["trend_history_status"] = "ok"
+            return True, ""
+        st.session_state["trend_history_status"] = f"write_failed:{response.status_code}"
+        return False, response.text
+    except Exception as exc:
+        st.session_state["trend_history_status"] = "write_exception"
+        return False, str(exc)
+
+def build_workbook_trend_history(df_services, df_products, df_prices, stylist_configs):
+    workbook_run_ts = "uploaded-workbook"
+    records = build_trend_records(
+        df_services,
+        df_products,
+        df_prices,
+        stylist_configs or {},
+        None,
+        workbook_run_ts,
+    )
+    return records
+
+def slugify_username(value):
+    clean = "".join(ch.lower() if ch.isalnum() else "_" for ch in str(value).strip())
+    clean = "_".join(part for part in clean.split("_") if part)
+    return clean or "stylist"
+
+def validate_workbook_data(df_services, df_products, df_prices):
+    issues = []
+
+    required_service_cols = {"Date", "Stylist", "Service", "Amount"}
+    missing_service_cols = sorted(required_service_cols - set(df_services.columns))
+    if missing_service_cols:
+        issues.append(f"Services Sales is missing columns: {', '.join(missing_service_cols)}")
+
+    if "Date" in df_services.columns:
+        parsed_dates = pd.to_datetime(df_services["Date"], dayfirst=True, errors="coerce")
+        if parsed_dates.notna().sum() == 0:
+            issues.append("Services Sales does not contain any readable dates.")
+
+    if "Amount" in df_services.columns:
+        numeric_amounts = pd.to_numeric(df_services["Amount"], errors="coerce")
+        if numeric_amounts.notna().sum() == 0:
+            issues.append("Services Sales does not contain any readable service amounts.")
+
+    if "Name" not in df_prices.columns or "Cost Price" not in df_prices.columns:
+        issues.append("Products Price List must contain 'Name' and 'Cost Price' columns.")
+
+    if df_services.empty:
+        issues.append("Services Sales sheet is empty.")
+
+    return issues
+
+def sync_stylist_accounts(stylist_names, users_df):
+    if not stylist_names:
+        return []
+
+    existing_usernames = set()
+    existing_names = {}
+    if users_df is not None and not users_df.empty:
+        existing_usernames = {str(username).strip().lower() for username in users_df["username"].dropna().tolist()}
+        existing_names = {
+            str(row["name"]).strip().lower(): str(row["username"]).strip()
+            for _, row in users_df.dropna(subset=["name", "username"]).iterrows()
+        }
+
+    created_accounts = []
+    for stylist_name in stylist_names:
+        clean_name = str(stylist_name).strip()
+        if not clean_name:
+            continue
+
+        if clean_name.lower() in existing_names:
+            continue
+
+        base_username = slugify_username(clean_name)
+        username = base_username
+        suffix = 1
+        while username.lower() in existing_usernames:
+            suffix += 1
+            username = f"{base_username}_{suffix}"
+
+        if save_user_to_supabase({
+            "username": username,
+            "password": "changeMe123",
+            "name": clean_name,
+            "role": "stylist",
+        }):
+            existing_usernames.add(username.lower())
+            existing_names[clean_name.lower()] = username
+            created_accounts.append({"name": clean_name, "username": username})
+
+    return created_accounts
+
+def build_trend_records(df_services, df_products, df_prices, stylist_configs, selected_month, run_ts):
+    if df_services is None or df_services.empty:
+        return []
+
+    services = df_services.copy()
+    services["Date_dt"] = pd.to_datetime(services["Date"], dayfirst=True, errors="coerce")
+    month_df = services.dropna(subset=["Date_dt"]).copy()
+    if selected_month:
+        month_df = month_df[month_df["Date_dt"].dt.strftime('%B %Y') == selected_month].copy()
+    month_df = month_df.dropna(subset=["Date_dt"])
+    if month_df.empty:
+        return []
+
+    product_df = df_products.copy() if df_products is not None else pd.DataFrame()
+    price_df = df_prices.copy() if df_prices is not None else pd.DataFrame()
+    stylists = sorted(month_df["Stylist"].dropna().unique().tolist())
+    all_records = []
+
+    for stylist in stylists:
+        stylist_df = month_df[month_df["Stylist"] == stylist].copy()
+        if stylist_df.empty:
+            continue
+
+        config = stylist_configs.get(stylist, {"services": [], "referrals": [0, 0, 0, 0, 0], "reviews": [0, 0, 0, 0, 0]})
+        stylist_df["trend_date"] = pd.to_datetime(stylist_df["Date_dt"]).dt.normalize()
+        stylist_df["week_start"] = stylist_df["trend_date"] - pd.to_timedelta(stylist_df["trend_date"].dt.weekday, unit="D")
+
+        daily_revenue = stylist_df.groupby("trend_date")["Amount"].sum().to_dict()
+        eligible_services = stylist_df[stylist_df["Service"].isin(config.get("services", []))]
+        daily_service_commission = (eligible_services.groupby("trend_date")["Amount"].sum() * 0.10).to_dict()
+
+        daily_bonus = {}
+        weekly_groups = stylist_df.groupby("week_start")
+        ordered_weeks = sorted(weekly_groups.groups.keys())
+        week_anchor_dates = {}
+
+        for week_start, week_data in weekly_groups:
+            week_anchor_dates[week_start] = pd.to_datetime(week_data["trend_date"]).min().normalize()
+            weekly_sales = week_data["Amount"].sum()
+            if calculations.calculate_weekly_bonus_eligibility(weekly_sales):
+                for trend_date, amount in week_data.groupby("trend_date")["Amount"].sum().items():
+                    daily_bonus[trend_date] = daily_bonus.get(trend_date, 0) + calculations.calculate_daily_sales_bonus(amount)
+
+        for idx, week_start in enumerate(ordered_weeks):
+            anchor_date = week_anchor_dates.get(week_start, week_start)
+            if idx < len(config.get("referrals", [])):
+                daily_bonus[anchor_date] = daily_bonus.get(anchor_date, 0) + calculations.calculate_referral_bonus(config["referrals"][idx])
+            if idx < len(config.get("reviews", [])):
+                daily_bonus[anchor_date] = daily_bonus.get(anchor_date, 0) + calculations.calculate_review_bonus(config["reviews"][idx], idx + 1)
+
+        month_end = stylist_df["trend_date"].max()
+        monthly_sales = stylist_df["Amount"].sum()
+        daily_bonus[month_end] = daily_bonus.get(month_end, 0) + calculations.calculate_stretch_bonus(monthly_sales)
+
+        product_commission_by_date = {}
+        if not product_df.empty and not price_df.empty:
+            staff_col = next((col for col in product_df.columns if str(col).lower() in ["staff", "stylist", "employee", "name"]), None)
+            product_name_col = next((col for col in product_df.columns if str(col).lower() in ["product", "item"]), None)
+            product_revenue_col = next((col for col in product_df.columns if str(col).lower() in ["revenue", "amount", "sales"]), None)
+            product_date_col = next((col for col in product_df.columns if str(col).lower() in ["date", "sale date"]), None)
+
+            if staff_col and product_name_col and product_revenue_col:
+                stylist_products = product_df[product_df[staff_col] == stylist].copy()
+                if product_date_col and not stylist_products.empty:
+                    stylist_products["ProductDate"] = pd.to_datetime(stylist_products[product_date_col], dayfirst=True, errors="coerce")
+                    stylist_products = stylist_products[stylist_products["ProductDate"].dt.strftime('%B %Y') == selected_month]
+
+                for _, prod_row in stylist_products.iterrows():
+                    product_name = prod_row[product_name_col]
+                    product_revenue = prod_row[product_revenue_col]
+                    price_match = price_df[price_df["Name"] == product_name]
+                    if price_match.empty:
+                        continue
+
+                    cost_price = price_match.iloc[0]["Cost Price"]
+                    commission = calculations.calculate_product_commission(product_revenue - cost_price, 1)
+                    trend_date = month_end
+                    if product_date_col and pd.notna(prod_row.get("ProductDate")):
+                        trend_date = pd.to_datetime(prod_row["ProductDate"]).normalize()
+                    product_commission_by_date[trend_date] = product_commission_by_date.get(trend_date, 0) + commission
+
+        all_dates = sorted(set(daily_revenue.keys()) | set(daily_service_commission.keys()) | set(daily_bonus.keys()) | set(product_commission_by_date.keys()))
+        for trend_date in all_dates:
+            week_start = trend_date - pd.Timedelta(days=trend_date.weekday())
+            week_anchor_date = week_anchor_dates.get(week_start, trend_date)
+            total_bonus = (
+                daily_bonus.get(trend_date, 0)
+                + daily_service_commission.get(trend_date, 0)
+                + product_commission_by_date.get(trend_date, 0)
+            )
+            all_records.append({
+                "run_ts": run_ts,
+                "period": trend_date.strftime("%B %Y"),
+                "stylist_name": stylist,
+                "trend_date": trend_date.date().isoformat(),
+                "trend_week_start": week_anchor_date.date().isoformat(),
+                "revenue": float(daily_revenue.get(trend_date, 0)),
+                "bonus": float(total_bonus),
+            })
+
+    return all_records
+
+def build_month_scoped_weekly_chart_data(trend_source):
+    if trend_source is None or trend_source.empty:
+        return pd.DataFrame()
+
+    df = trend_source.copy()
+    df["trend_date"] = pd.to_datetime(df["trend_date"], errors="coerce")
+    df = df.dropna(subset=["trend_date"])
+    if df.empty:
+        return pd.DataFrame()
+
+    df["PeriodMonth"] = df["trend_date"].dt.to_period("M").dt.to_timestamp()
+    df["WeekIndex"] = ((df["trend_date"].dt.day - 1) // 7) + 1
+
+    weekly = (
+        df.groupby(["PeriodMonth", "WeekIndex"], as_index=False)[["revenue", "bonus"]].sum()
+        .sort_values(["PeriodMonth", "WeekIndex"])
+        .rename(columns={
+            "revenue": "Revenue Growth",
+            "bonus": "Bonus Payouts",
+        })
+    )
+    weekly["PeriodDate"] = weekly.apply(
+        lambda row: pd.Timestamp(row["PeriodMonth"]) + pd.Timedelta(days=(int(row["WeekIndex"]) - 1) * 7),
+        axis=1,
+    )
+    weekly["PeriodLabel"] = weekly.apply(
+        lambda row: f"W{int(row['WeekIndex'])} {pd.Timestamp(row['PeriodMonth']).strftime('%b %Y')}",
+        axis=1,
+    )
+    return weekly[["PeriodDate", "PeriodLabel", "Revenue Growth", "Bonus Payouts"]]
+
+def build_latest_archived_session_summary(history_df):
+    if history_df is None or history_df.empty:
+        return pd.DataFrame()
+
+    df = history_df.copy()
+    if "calculation_date" in df.columns:
+        df["calculation_date"] = pd.to_datetime(df["calculation_date"], errors="coerce")
+    df = df.dropna(subset=["period", "calculation_date"])
+    if df.empty:
+        return pd.DataFrame()
+
+    session_totals = (
+        df.groupby(["period", "calculation_date"], as_index=False)[["monthly_sales", "total_bonus"]].sum()
+        .sort_values("calculation_date")
+    )
+    latest_sessions = session_totals.groupby("period", as_index=False).tail(1).copy()
+    latest_sessions["period_date"] = pd.to_datetime(latest_sessions["period"], format="%B %Y", errors="coerce")
+    latest_sessions = latest_sessions.dropna(subset=["period_date"]).sort_values("period_date")
+    return latest_sessions
+
 # --- UI Components & Styling ---
 def apply_custom_css():
     st.markdown("""
@@ -115,27 +398,30 @@ def apply_custom_css():
         
         :root {
             color-scheme: light !important;
-            --primary: #6366f1;
-            --primary-light: #818cf8;
+            --primary: #1d4ed8;
+            --primary-light: #60a5fa;
             --secondary: #64748b;
-            --bg-main: #ffffff;
-            --card-bg: #ffffff;
-            --accent: #10b981;
-            --accent-purple: #8b5cf6;
-            --text-main: #0f172a;
+            --bg-main: #f4f7fb;
+            --card-bg: rgba(255, 255, 255, 0.94);
+            --accent: #059669;
+            --accent-purple: #0f766e;
+            --text-main: #10233f;
             --text-muted: #64748b;
-            --border: #e2e8f0;
+            --border: #dbe5f0;
 
             /* Force Streamlit internal variables to light mode */
-            --st-background-color: #ffffff !important;
-            --st-secondary-background-color: #f8fafc !important;
-            --st-text-color: #0f172a !important;
-            --st-primary-color: #6366f1 !important;
+            --st-background-color: #f4f7fb !important;
+            --st-secondary-background-color: #edf3fb !important;
+            --st-text-color: #10233f !important;
+            --st-primary-color: #1d4ed8 !important;
         }
 
         /* Force Light Theme globally and ignore system preferences */
         html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp, [data-testid="stApp"], [data-testid="stMain"] {
-            background-color: white !important;
+            background:
+                radial-gradient(circle at top left, rgba(96, 165, 250, 0.16), transparent 28%),
+                radial-gradient(circle at top right, rgba(5, 150, 105, 0.10), transparent 24%),
+                linear-gradient(180deg, #f8fbff 0%, #f4f7fb 45%, #eef3f9 100%) !important;
             color: var(--text-main) !important;
             font-family: 'Plus Jakarta Sans', sans-serif !important;
             color-scheme: light !important;
@@ -255,13 +541,13 @@ def apply_custom_css():
 
         [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] > div:first-child > div,
         [data-testid="stFileUploader"] [data-testid="stUploadedFile"] > div:first-child > div {
-            width: 2.1rem !important;
-            height: 2.1rem !important;
-            min-width: 2.1rem !important;
-            min-height: 2.1rem !important;
-            border-radius: 0.7rem !important;
-            background: #eef2ff !important;
-            border: 1px solid #d9e0ff !important;
+            width: auto !important;
+            height: auto !important;
+            min-width: auto !important;
+            min-height: auto !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            border: none !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -275,11 +561,22 @@ def apply_custom_css():
             opacity: 1 !important;
             visibility: visible !important;
             background-image: none !important;
+            background-color: transparent !important;
+            box-shadow: none !important;
         }
 
         [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] svg,
         [data-testid="stFileUploader"] [data-testid="stUploadedFile"] svg,
         [data-testid="stFileUploader"] [data-testid="stUploadedFile"] button svg {
+            color: var(--primary) !important;
+            fill: currentColor !important;
+            stroke: currentColor !important;
+        }
+
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] button > div,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] button span,
+        [data-testid="stFileUploader"] [data-testid="stUploadedFile"] button * {
+            background: transparent !important;
             color: var(--primary) !important;
             fill: currentColor !important;
             stroke: currentColor !important;
@@ -781,6 +1078,34 @@ def apply_custom_css():
             stroke: currentColor !important;
         }
 
+        [data-baseweb="popover"] {
+            border-radius: 1rem !important;
+            overflow: hidden !important;
+        }
+
+        [data-baseweb="popover"] [data-testid="stTextInput"] input,
+        [data-baseweb="popover"] .stTextInput input {
+            min-height: 2.7rem !important;
+            height: 2.7rem !important;
+            padding: 0 2.75rem 0 0.9rem !important;
+            font-size: 0.95rem !important;
+            border-radius: 0.9rem !important;
+            box-shadow: none !important;
+        }
+
+        [data-baseweb="popover"] .stButton button,
+        [data-baseweb="popover"] button[kind="primary"],
+        [data-baseweb="popover"] button[data-testid="stBaseButton-primary"] {
+            width: 100% !important;
+            min-height: 2.6rem !important;
+            height: 2.6rem !important;
+            padding: 0.65rem 1rem !important;
+            border-radius: 0.9rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
         [data-testid="stExpander"] details,
         [data-testid="stExpander"] details > div,
         [data-testid="stExpander"] details summary {
@@ -804,12 +1129,43 @@ def apply_custom_css():
             background: #f8fafc !important;
         }
 
+        [data-testid="stExpander"] summary,
+        [data-testid="stExpander"] summary > div,
+        [data-testid="stExpander"] details > summary,
+        [data-testid="stExpander"] details > summary > div,
+        [data-testid="stExpander"] [role="button"],
+        [data-testid="stExpander"] [role="button"] > div {
+            background: white !important;
+            color: var(--text-main) !important;
+            background-image: none !important;
+        }
+
         [data-testid="stExpander"] details summary *,
         [data-testid="stExpander"] details svg,
         [data-testid="stExpander"] details path {
             color: var(--text-main) !important;
             fill: currentColor !important;
             stroke: currentColor !important;
+        }
+
+        [data-testid="stPopoverButton"],
+        [data-testid="stPopoverButton"] > div,
+        [data-testid="stPopoverButton"] button,
+        [data-testid="stPopoverButton"] button[kind],
+        div[data-testid="stPopoverButton"] button {
+            background: white !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08) !important;
+            background-image: none !important;
+        }
+
+        [data-testid="stPopoverButton"] button *,
+        div[data-testid="stPopoverButton"] button * {
+            color: var(--text-main) !important;
+            fill: currentColor !important;
+            stroke: currentColor !important;
+            -webkit-text-fill-color: var(--text-main) !important;
         }
 
         /* Modern Dataframe Enhancement */
@@ -967,6 +1323,241 @@ def apply_custom_css():
         .light-table-wrap tbody tr:last-child td {
             border-bottom: none;
         }
+
+        .page-hero {
+            background: linear-gradient(135deg, rgba(29, 78, 216, 0.98) 0%, rgba(37, 99, 235, 0.95) 55%, rgba(8, 145, 178, 0.92) 100%);
+            color: white !important;
+            border-radius: 1.5rem;
+            padding: 1.6rem 1.75rem;
+            margin-bottom: 1.2rem;
+            box-shadow: 0 20px 50px rgba(29, 78, 216, 0.24);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-hero::before {
+            content: "";
+            position: absolute;
+            top: -4rem;
+            right: -3rem;
+            width: 14rem;
+            height: 14rem;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.10);
+        }
+
+        .page-hero::after {
+            content: "";
+            position: absolute;
+            left: -2rem;
+            bottom: -5rem;
+            width: 16rem;
+            height: 16rem;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .page-hero-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .page-hero-eyebrow {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-weight: 800;
+            opacity: 0.82;
+            margin-bottom: 0.7rem;
+            color: rgba(255,255,255,0.82) !important;
+        }
+
+        .page-hero-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: white !important;
+            letter-spacing: -0.03em;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .page-hero-subtitle {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: rgba(255,255,255,0.84) !important;
+            max-width: 42rem;
+            margin: 0;
+        }
+
+        .hero-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.55rem 0.95rem;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.18);
+            color: white !important;
+            font-size: 0.82rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .sidebar-profile {
+            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(244,247,251,0.96) 100%);
+            border: 1px solid var(--border);
+            border-radius: 1.2rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+        }
+
+        .sidebar-profile-role {
+            display: inline-block;
+            margin-top: 0.35rem;
+            padding: 0.28rem 0.65rem;
+            border-radius: 999px;
+            background: rgba(29, 78, 216, 0.10);
+            color: var(--primary) !important;
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.9rem;
+            margin: 0.35rem 0 1.25rem 0;
+        }
+
+        .kpi-item {
+            padding: 0.95rem 1rem;
+            border-radius: 1rem;
+            background: rgba(255,255,255,0.78);
+            border: 1px solid rgba(219,229,240,0.95);
+        }
+
+        .kpi-label {
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted) !important;
+            font-weight: 800;
+            margin-bottom: 0.35rem;
+        }
+
+        .kpi-value {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--text-main) !important;
+        }
+
+        .surface-panel {
+            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.94) 100%);
+            border: 1px solid var(--border);
+            border-radius: 1.35rem;
+            padding: 1.1rem 1.2rem;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+            margin-bottom: 1rem;
+        }
+
+        .surface-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--text-main) !important;
+            margin-bottom: 0.3rem;
+        }
+
+        .surface-copy {
+            color: var(--text-muted) !important;
+            font-size: 0.92rem;
+            line-height: 1.55;
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,250,255,0.96) 100%) !important;
+            border-radius: 1.15rem;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06) !important;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::after {
+            content: "";
+            position: absolute;
+            right: -1.5rem;
+            bottom: -2.5rem;
+            width: 7rem;
+            height: 7rem;
+            background: radial-gradient(circle, rgba(96, 165, 250, 0.16), transparent 65%);
+            pointer-events: none;
+        }
+
+        .global-header {
+            background: rgba(255, 255, 255, 0.84) !important;
+            backdrop-filter: blur(12px);
+            padding: 1rem 1.35rem;
+            border-radius: 1.15rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06) !important;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+        }
+
+        .header-caption {
+            color: var(--text-muted) !important;
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-top: 0.15rem;
+        }
+
+        .block-container {
+            padding-bottom: 2rem !important;
+            max-width: 1280px !important;
+        }
+
+        [data-testid="stVegaLiteChart"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            padding-bottom: 0.35rem !important;
+            box-sizing: border-box !important;
+        }
+
+        [data-testid="stVegaLiteChart"] > div {
+            width: max-content !important;
+            max-width: none !important;
+        }
+
+        [data-testid="stVegaLiteChart"] canvas,
+        [data-testid="stVegaLiteChart"] svg {
+            max-width: none !important;
+        }
+
+        @media (max-width: 900px) {
+            .global-header,
+            .page-hero-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .page-hero-title {
+                font-size: 1.55rem;
+            }
+
+            .step-container {
+                padding: 0;
+                gap: 0.5rem;
+            }
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -984,6 +1575,31 @@ def dashboard_card(title, value, delta=None, delta_type="up", prefix="AED", icon
             {delta_html}
         </div>
     """, unsafe_allow_html=True)
+
+def render_page_intro(eyebrow, title, subtitle, pill_text=None):
+    pill_html = f'<div class="hero-pill">{html.escape(str(pill_text))}</div>' if pill_text else ""
+    st.markdown(f"""
+        <div class="page-hero">
+            <div class="page-hero-content">
+                <div>
+                    <div class="page-hero-eyebrow">{html.escape(str(eyebrow))}</div>
+                    <div class="page-hero-title">{html.escape(str(title))}</div>
+                    <div class="page-hero-subtitle">{html.escape(str(subtitle))}</div>
+                </div>
+                {pill_html}
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+def render_kpi_strip(items):
+    cards = []
+    for label, value in items:
+        cards.append(
+            f'<div class="kpi-item"><div class="kpi-label">{html.escape(str(label))}</div><div class="kpi-value">{html.escape(str(value))}</div></div>'
+        )
+
+    kpi_html = '<div class="kpi-strip">' + "".join(cards) + '</div>'
+    st.markdown(kpi_html, unsafe_allow_html=True)
 
 def render_theme_lock():
     st.components.v1.html(
@@ -1012,33 +1628,92 @@ def render_theme_lock():
         height=0,
     )
 
-def render_altair_line_chart(dataframe):
-    chart_data = dataframe.reset_index().rename(columns={"index": "Period"})
-    long_df = chart_data.melt(id_vars="Period", var_name="Metric", value_name="Amount")
+def render_altair_line_chart(dataframe, trend_view="Daily Trend"):
+    chart_data = dataframe.copy()
+    if "PeriodDate" not in chart_data.columns:
+        chart_data = chart_data.reset_index().rename(columns={"index": "Period"})
+        chart_data["PeriodLabel"] = chart_data["Period"].astype(str)
+    else:
+        chart_data["PeriodDate"] = pd.to_datetime(chart_data["PeriodDate"], errors="coerce")
+        chart_data["PeriodLabel"] = chart_data["PeriodLabel"].astype(str)
+        chart_data = chart_data.sort_values("PeriodDate")
+
+    melt_columns = [col for col in chart_data.columns if col not in ["Period", "PeriodDate", "PeriodLabel"]]
+    id_vars = ["PeriodLabel"] + (["PeriodDate"] if "PeriodDate" in chart_data.columns else [])
+    long_df = chart_data.melt(id_vars=id_vars, value_vars=melt_columns, var_name="Metric", value_name="Amount")
+    point_count = max(len(chart_data), 1)
+    chart_width = max(720, point_count * 44)
     color_scale = alt.Scale(
         domain=["Revenue Growth", "Bonus Payouts"],
         range=["#6366f1", "#10b981"],
     )
-    chart = (
-        alt.Chart(long_df)
-        .mark_line(point=True, strokeWidth=3)
-        .encode(
-            x=alt.X("Period:N", sort=None, axis=alt.Axis(title=None, labelColor="#475569", labelAngle=0)),
-            y=alt.Y("Amount:Q", axis=alt.Axis(title=None, labelColor="#475569", gridColor="#e2e8f0")),
-            color=alt.Color("Metric:N", scale=color_scale, legend=alt.Legend(title=None, labelColor="#475569")),
-            tooltip=[
-                alt.Tooltip("Period:N", title="Period"),
-                alt.Tooltip("Metric:N", title="Metric"),
-                alt.Tooltip("Amount:Q", title="Amount", format=",.2f"),
-            ],
+    legend = alt.Legend(title=None, orient="top-right", labelColor="#475569", symbolSize=110, padding=8)
+    y_axis = alt.Axis(
+        title=None,
+        labelColor="#475569",
+        gridColor="#e2e8f0",
+        format=",.0f",
+        tickCount=6,
+    )
+
+    if "PeriodDate" in long_df.columns:
+        if trend_view == "Monthly Trend":
+            axis_format = "%b %Y"
+            label_angle = 0
+        elif trend_view == "Daily Trend" and point_count > 20:
+            axis_format = "%d %b"
+            label_angle = -35
+        else:
+            axis_format = "%d %b %Y"
+            label_angle = -35
+        x_encoding = alt.X(
+            "PeriodDate:T",
+            axis=alt.Axis(
+                title=None,
+                labelColor="#475569",
+                format=axis_format,
+                labelAngle=label_angle,
+                labelPadding=8,
+                tickCount=min(max(point_count, 4), 12),
+            ),
         )
-        .properties(height=320)
+        tooltip_period = alt.Tooltip("PeriodLabel:N", title="Period")
+    else:
+        x_encoding = alt.X(
+            "PeriodLabel:N",
+            sort=None,
+            axis=alt.Axis(title=None, labelColor="#475569", labelAngle=0),
+        )
+        tooltip_period = alt.Tooltip("PeriodLabel:N", title="Period")
+
+    show_points = point_count <= 45 or trend_view == "Monthly Trend"
+    base = alt.Chart(long_df).encode(
+        x=x_encoding,
+        y=alt.Y("Amount:Q", axis=y_axis),
+        color=alt.Color("Metric:N", scale=color_scale, legend=legend),
+    )
+    lines = base.mark_line(strokeWidth=4 if trend_view == "Monthly Trend" else 3)
+    points = base.mark_circle(size=64, filled=True, stroke="white", strokeWidth=1.4).encode(
+        opacity=alt.value(1 if show_points else 0)
+    )
+    hover_points = base.mark_circle(size=90, filled=True).encode(
+        opacity=alt.condition("datum.Amount != null", alt.value(0.001), alt.value(0.001)),
+        tooltip=[
+            tooltip_period,
+            alt.Tooltip("Metric:N", title="Metric"),
+            alt.Tooltip("Amount:Q", title="Amount", format=",.2f"),
+        ],
+    )
+    chart = (
+        alt.layer(lines, points, hover_points)
+        .properties(height=320, width=chart_width)
+        .interactive()
         .configure(background="white")
         .configure_view(stroke="#e2e8f0")
         .configure_axis(domainColor="#cbd5e1", tickColor="#cbd5e1", labelFontSize=12)
         .configure_legend(labelFontSize=12)
     )
-    st.altair_chart(chart, use_container_width=True, theme=None)
+    st.altair_chart(chart, use_container_width=False, theme=None)
 
 def render_altair_bar_chart(dataframe):
     chart_data = dataframe.reset_index()
@@ -1159,8 +1834,14 @@ def main():
 
         # --- Sidebar Navigation ---
         with st.sidebar:
-            st.markdown(f"### Dashboard")
-            st.markdown(f"Welcome, **{user_display_name}**")
+            st.markdown(f"""
+                <div class="sidebar-profile">
+                    <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-weight: 800;">Bonus Hub</div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); margin-top: 0.35rem;">{html.escape(user_display_name)}</div>
+                    <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.15rem;">Signed in to the commission dashboard</div>
+                    <div class="sidebar-profile-role">{html.escape(user_role)}</div>
+                </div>
+            """, unsafe_allow_html=True)
             
             menu_options = ["Dashboard"]
             menu_icons = ["speedometer2"]
@@ -1204,7 +1885,10 @@ def main():
 
         st.markdown(f"""
             <div class="global-header">
-                <div class="header-title">{page if page != "History Log" else "Archive"}</div>
+                <div>
+                    <div class="header-title">{page if page != "History Log" else "Archive"}</div>
+                    <div class="header-caption">Commission operations and performance reporting</div>
+                </div>
                 <div style="font-size: 0.875rem; color: var(--text-muted); font-weight: 600;">
                     {datetime.now().strftime('%A, %d %B %Y')}
                 </div>
@@ -1214,9 +1898,18 @@ def main():
         # --- Dashboard Page ---
         if page == "Dashboard":
                 history = get_history_from_supabase()
+                trend_history = get_trend_history_from_supabase()
+                render_page_intro(
+                    "Performance overview",
+                    "Track revenue, payouts, and stylist momentum",
+                    "Use this dashboard to monitor recent bonus activity, compare payout trends, and quickly spot your strongest periods.",
+                    "Live summary",
+                )
                 if not history.empty:
                     if user_role == "stylist":
                         history = history[history['stylist_name'] == user_display_name]
+                        if not trend_history.empty and "stylist_name" in trend_history.columns:
+                            trend_history = trend_history[trend_history["stylist_name"] == user_display_name]
                     
                     if history.empty:
                         st.info("No performance data found for your account yet.")
@@ -1228,6 +1921,14 @@ def main():
                         total_sales = history['monthly_sales'].sum()
                         total_bonus = history['total_bonus'].sum()
                         avg_bonus_per_sale = (total_bonus / total_sales * 100) if total_sales > 0 else 0
+                        latest_period = history['calculation_date'].max().strftime('%d %b %Y')
+
+                        render_kpi_strip([
+                            ("Latest update", latest_period),
+                            ("Active view", "Personal" if user_role == "stylist" else "Team-wide"),
+                            ("Revenue tracked", f"AED {total_sales:,.0f}"),
+                            ("Payout tracked", f"AED {total_bonus:,.0f}"),
+                        ])
                         
                         with m1: dashboard_card("Total Revenue", f"{total_sales:,.0f}")
                         with m2: dashboard_card("Total Bonuses", f"{total_bonus:,.0f}")
@@ -1235,24 +1936,138 @@ def main():
                         with m4: dashboard_card("Total Records", f"{len(history)}", prefix="", delta=None)
 
                         st.markdown('<div class="section-title">Growth Analytics</div>', unsafe_allow_html=True)
-                        time_view = st.radio("Select View:", ["Monthly Growth", "Weekly Growth"], horizontal=True, label_visibility="collapsed")
-                        history = history.sort_values('calculation_date')
-                        
-                        if time_view == "Monthly Growth":
-                            history['Period'] = history['calculation_date'].dt.strftime('%b %Y')
-                            chart_data = history.groupby('Period', sort=False)[['monthly_sales', 'total_bonus']].sum()
-                        else:
-                            history['Period'] = history['calculation_date'].apply(lambda x: (x - timedelta(days=x.weekday())).strftime('%d %b'))
-                            chart_data = history.groupby('Period', sort=False)[['monthly_sales', 'total_bonus']].sum()
-                        
-                        chart_data = chart_data.rename(columns={
-                            'monthly_sales': 'Revenue Growth',
-                            'total_bonus': 'Bonus Payouts'
-                        })
-                        
+                        time_view = st.radio("Select View:", ["Daily Trend", "Weekly Trend", "Monthly Trend"], horizontal=True, label_visibility="collapsed")
+                        chart_data = pd.DataFrame()
+                        trend_source = pd.DataFrame()
+                        history_for_monthly = history.copy()
+                        archived_session_summary = build_latest_archived_session_summary(history_for_monthly)
+                        trend_sources = []
+                        monthly_filter_options = []
+                        detail_filter_options = []
+
+                        if not trend_history.empty:
+                            trend_sources.append(
+                                trend_history.dropna(subset=["trend_date", "trend_week_start"]).sort_values("trend_date").copy()
+                            )
+
+                        live_trend_records = st.session_state.get("uploaded_trend_records", [])
+                        if not live_trend_records and "raw_data" in st.session_state:
+                            live_trend_records = build_workbook_trend_history(
+                                st.session_state.raw_data.get("services"),
+                                st.session_state.raw_data.get("products"),
+                                st.session_state.raw_data.get("prices"),
+                                st.session_state.get("stylist_configs", {}),
+                            )
+                            st.session_state.uploaded_trend_records = live_trend_records
+
+                        if live_trend_records:
+                            live_trend_df = pd.DataFrame(live_trend_records)
+                            live_trend_df["trend_date"] = pd.to_datetime(live_trend_df["trend_date"], errors="coerce")
+                            live_trend_df["trend_week_start"] = pd.to_datetime(live_trend_df["trend_week_start"], errors="coerce")
+                            trend_sources.append(live_trend_df)
+
+                        if trend_sources:
+                            trend_source = pd.concat(trend_sources, ignore_index=True)
+                            trend_source = trend_source.drop_duplicates(
+                                subset=["run_ts", "period", "stylist_name", "trend_date", "trend_week_start", "revenue", "bonus"]
+                            )
+                            if user_role == "stylist":
+                                trend_source = trend_source[trend_source["stylist_name"] == user_display_name]
+
+                        if time_view == "Monthly Trend":
+                            monthly_filter_options = sorted(
+                                archived_session_summary["period"].dropna().astype(str).drop_duplicates().tolist(),
+                                key=lambda value: datetime.strptime(value, "%B %Y")
+                            )
+                            selected_months = st.multiselect(
+                                "Filter months",
+                                monthly_filter_options,
+                                default=monthly_filter_options[-6:] if len(monthly_filter_options) > 6 else monthly_filter_options,
+                                help="Choose which archived reporting months to include in the monthly trend chart.",
+                                key="monthly_trend_filter",
+                            )
+                            monthly_history = archived_session_summary.copy()
+                            if selected_months:
+                                monthly_history = monthly_history[monthly_history["period"].isin(selected_months)]
+
+                            if not monthly_history.empty:
+                                chart_data = (
+                                    monthly_history.groupby("period_date", as_index=False)[["monthly_sales", "total_bonus"]].sum()
+                                    .rename(columns={
+                                        "period_date": "PeriodDate",
+                                        "monthly_sales": "Revenue Growth",
+                                        "total_bonus": "Bonus Payouts",
+                                    })
+                                )
+                                chart_data["PeriodLabel"] = chart_data["PeriodDate"].dt.strftime("%b %Y")
+                        elif not trend_source.empty:
+                            detail_filter_options = sorted(
+                                trend_source["period"].dropna().astype(str).drop_duplicates().tolist(),
+                                key=lambda value: datetime.strptime(value, "%B %Y")
+                            )
+                            selected_months = st.multiselect(
+                                "Filter months",
+                                detail_filter_options,
+                                default=detail_filter_options[-6:] if len(detail_filter_options) > 6 else detail_filter_options,
+                                help="Choose which reporting months to include in the trend chart.",
+                                key="detail_trend_filter",
+                            )
+                            if selected_months:
+                                trend_source = trend_source[trend_source["period"].isin(selected_months)]
+
+                            if time_view == "Daily Trend":
+                                trend_source = trend_source.sort_values("trend_date")
+                                chart_data = (
+                                    trend_source.groupby("trend_date", as_index=False)[["revenue", "bonus"]].sum()
+                                    .rename(columns={
+                                        "trend_date": "PeriodDate",
+                                        "revenue": "Revenue Growth",
+                                        "bonus": "Bonus Payouts",
+                                    })
+                                )
+                                chart_data["PeriodLabel"] = chart_data["PeriodDate"].dt.strftime("%d %b %Y")
+                            elif time_view == "Weekly Trend":
+                                chart_data = build_month_scoped_weekly_chart_data(trend_source)
+                            else:
+                                trend_source["trend_month"] = trend_source["trend_date"].dt.to_period("M").dt.to_timestamp()
+                                trend_source = trend_source.sort_values("trend_month")
+                                chart_data = (
+                                    trend_source.groupby("trend_month", as_index=False)[["revenue", "bonus"]].sum()
+                                    .rename(columns={
+                                        "trend_month": "PeriodDate",
+                                        "revenue": "Revenue Growth",
+                                        "bonus": "Bonus Payouts",
+                                    })
+                                )
+                                chart_data["PeriodLabel"] = chart_data["PeriodDate"].dt.strftime("%b %Y")
                         with st.container(border=True):
-                            st.markdown(f'<div class="sub-header" style="margin-bottom:1rem;">{time_view} (AED)</div>', unsafe_allow_html=True)
-                            render_altair_line_chart(chart_data)
+                            st.markdown(f'<div class="sub-header" style="margin-bottom:1rem;">{time_view} based on actual business dates (AED)</div>', unsafe_allow_html=True)
+                            if not chart_data.empty:
+                                if time_view != "Monthly Trend":
+                                    st.caption("Scroll horizontally inside the chart to inspect each day when the timeline gets dense.")
+                                render_altair_line_chart(chart_data, trend_view=time_view)
+                                if len(chart_data) > 0:
+                                    summary_cols = st.columns(3)
+                                    summary_cols[0].metric("Periods", len(chart_data))
+                                    summary_cols[1].metric("Revenue Total", f"AED {chart_data['Revenue Growth'].sum():,.0f}")
+                                    summary_cols[2].metric("Bonus Total", f"AED {chart_data['Bonus Payouts'].sum():,.0f}")
+                            else:
+                                if time_view == "Monthly Trend":
+                                    st.info("No archived monthly records are available for the selected months.")
+                                else:
+                                    detail_months = archived_session_summary["period"].dropna().astype(str).drop_duplicates().tolist()
+                                    detail_context = ", ".join(sorted(detail_months, key=lambda value: datetime.strptime(value, "%B %Y"))) if detail_months else "no archived months"
+                                    st.warning(
+                                        f"{time_view} is only available when detailed day-level data exists. "
+                                        f"Right now this dashboard has archived monthly summaries for: {detail_context}, "
+                                        f"but no saved detailed trend history. Upload the workbook again or archive a new report to enable daily/weekly charts."
+                                    )
+                                    trend_status = st.session_state.get("trend_history_status", "")
+                                    if trend_status and trend_status != "ok":
+                                        st.caption(
+                                            "Supabase detailed trend table may be missing or unavailable. "
+                                            "Create `calculation_trend_history` in Supabase to persist daily/weekly chart data."
+                                        )
 
                         c1, c2 = st.columns([2, 1])
                         with c1:
@@ -1296,6 +2111,13 @@ def main():
                 if 'wizard_step' not in st.session_state: st.session_state.wizard_step = 1
                 if 'stylist_configs' not in st.session_state: st.session_state.stylist_configs = {}
 
+                render_page_intro(
+                    "Calculation studio",
+                    "Build a monthly commission report in three steps",
+                    "Upload the workbook, configure stylist-specific targets, then review the payout summary before archiving the run.",
+                    f"Step {st.session_state.wizard_step} of 3",
+                )
+
                 st.markdown(f"""
                     <div class="step-container">
                         <div class="step-line-bg"></div>
@@ -1315,8 +2137,12 @@ def main():
                 """, unsafe_allow_html=True)
                 
                 if st.session_state.wizard_step == 1:
-                    st.markdown('<div class="page-header">Get Started</div>', unsafe_allow_html=True)
-                    st.markdown('<div class="sub-header">Upload your monthly consolidated report to begin.</div>', unsafe_allow_html=True)
+                    st.markdown("""
+                        <div class="surface-panel">
+                            <div class="surface-title">Upload your monthly workbook</div>
+                            <div class="surface-copy">Start with the consolidated Excel report. Once the sheets are loaded, you can choose a month and continue into staff configuration.</div>
+                        </div>
+                    """, unsafe_allow_html=True)
                     with st.container(border=True):
                         uploaded_file = st.file_uploader("Drop your Excel file here", type=["xlsx"], label_visibility="collapsed")
                         if uploaded_file:
@@ -1325,12 +2151,40 @@ def main():
                                 df_services = pd.read_excel(xls, 'Services Sales')
                                 df_products = pd.read_excel(xls, 'Product Sales')
                                 df_prices = pd.read_excel(xls, 'Products Price List')
+                                validation_issues = validate_workbook_data(df_services, df_products, df_prices)
+                                if validation_issues:
+                                    for issue in validation_issues:
+                                        st.error(issue)
+                                    st.stop()
                                 st.session_state.raw_data = {'services': df_services, 'products': df_products, 'prices': df_prices}
                                 df_services['Date_dt'] = pd.to_datetime(df_services['Date'], dayfirst=True, errors='coerce')
                                 valid_dates = df_services['Date_dt'].dropna()
                                 available_months = sorted(valid_dates.dt.strftime('%B %Y').unique().tolist(), key=lambda x: datetime.strptime(x, '%B %Y'))
+                                workbook_stylists = sorted(df_services['Stylist'].dropna().astype(str).str.strip().unique().tolist())
+                                created_accounts = sync_stylist_accounts(workbook_stylists, users_df)
+                                st.session_state.workbook_months = available_months
+                                st.session_state.workbook_stylists = workbook_stylists
+                                st.session_state.created_accounts = created_accounts
+                                workbook_trend_records = build_workbook_trend_history(
+                                    df_services,
+                                    df_products,
+                                    df_prices,
+                                    st.session_state.get("stylist_configs", {}),
+                                )
+                                st.session_state.uploaded_trend_records = workbook_trend_records
                                 st.markdown('<div class="section-title">Select Month</div>', unsafe_allow_html=True)
-                                st.session_state.selected_month = st.selectbox("", available_months, label_visibility="collapsed")
+                                default_month = st.session_state.get("selected_month")
+                                if default_month not in available_months:
+                                    default_month = available_months[-1]
+                                st.session_state.selected_month = st.selectbox(
+                                    "",
+                                    available_months,
+                                    index=available_months.index(default_month),
+                                    label_visibility="collapsed"
+                                )
+                                if created_accounts:
+                                    created_preview = ", ".join(f"{item['name']} (@{item['username']})" for item in created_accounts[:4])
+                                    st.success(f"Created {len(created_accounts)} new stylist account(s): {created_preview}")
                                 if st.button("Continue to Configuration →", type="primary", use_container_width=True):
                                     st.session_state.wizard_step = 2
                                     st.rerun()
@@ -1342,9 +2196,18 @@ def main():
                     df_s['Date_dt'] = pd.to_datetime(df_s['Date'], dayfirst=True, errors='coerce')
                     df_month = df_s[df_s['Date_dt'].dt.strftime('%B %Y') == st.session_state.selected_month].copy()
                     stylists = sorted(df_month['Stylist'].dropna().unique().tolist())
-                    st.markdown('<div class="page-header">Staff Config</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="sub-header">Adjust settings for {len(stylists)} stylists in {st.session_state.selected_month}.</div>', unsafe_allow_html=True)
-                    if 'active_stylist' not in st.session_state: st.session_state.active_stylist = stylists[0]
+                    if not stylists:
+                        st.warning(f"No stylists found for {st.session_state.selected_month}. Please choose another month from the uploaded workbook.")
+                        st.session_state.wizard_step = 1
+                        st.rerun()
+                    st.markdown(f"""
+                        <div class="surface-panel">
+                            <div class="surface-title">Configure staff inputs</div>
+                            <div class="surface-copy">Adjust service commission eligibility, weekly referrals, and review counts for {len(stylists)} stylists in {st.session_state.selected_month}.</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    if 'active_stylist' not in st.session_state or st.session_state.active_stylist not in stylists:
+                        st.session_state.active_stylist = stylists[0]
                     st.markdown('<div class="section-title">Select Stylist</div>', unsafe_allow_html=True)
                     tab_cols = st.columns(len(stylists))
                     for i, s in enumerate(stylists):
@@ -1422,6 +2285,12 @@ def main():
                     return
                 df_results = pd.DataFrame(results)
                 with st.container(border=True):
+                    st.markdown(f"""
+                        <div class="surface-panel">
+                            <div class="surface-title">Review the payout summary</div>
+                            <div class="surface-copy">Check totals, compare stylist performance, and archive the report when everything looks right for {st.session_state.selected_month}.</div>
+                        </div>
+                    """, unsafe_allow_html=True)
                     col_header, col_actions = st.columns([1.8, 1.2])
                     with col_header:
                         st.markdown('<div class="page-header" style="margin-top:0;">Final Report</div>', unsafe_allow_html=True)
@@ -1434,7 +2303,30 @@ def main():
                             ts = datetime.now().isoformat()
                             for res in results:
                                 save_to_supabase({"calculation_date": ts, "stylist_name": res["Stylist"], "monthly_sales": float(res["Monthly Sales"]), "daily_bonus": float(res["Daily Target Bonus"]), "stretch_bonus": float(res["Stretch Bonus"]), "product_commission": float(res["Product Commission"]), "service_commission": float(res["Service Commission"]), "referral_bonus": float(res["Referral Bonus"]), "review_bonus": float(res["Review Bonus"]), "total_bonus": float(res["Total Bonus"]), "period": st.session_state.selected_month})
-                            st.success(f"Report Archived!")
+                            trend_records = build_trend_records(
+                                df_services,
+                                df_products,
+                                df_prices,
+                                st.session_state.stylist_configs,
+                                st.session_state.selected_month,
+                                ts,
+                            )
+                            trend_saved, trend_error = save_trend_history_to_supabase(trend_records)
+                            st.session_state.uploaded_trend_records = build_workbook_trend_history(
+                                df_services,
+                                df_products,
+                                df_prices,
+                                st.session_state.stylist_configs,
+                            )
+                            if trend_saved:
+                                st.success("Report archived with detailed trend history.")
+                            else:
+                                st.warning(
+                                    "Report archived, but detailed trend history could not be saved to Supabase. "
+                                    "Daily and weekly charts will disappear after refresh until the trend table is set up."
+                                )
+                                if trend_error:
+                                    st.caption(f"Trend save details: {trend_error[:220]}")
                     
                     st.markdown('<hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border);">', unsafe_allow_html=True)
                     active_tab = option_menu(
@@ -1575,6 +2467,12 @@ def main():
 
         # --- Products Page ---
         elif page == "Products":
+                render_page_intro(
+                    "Reference data",
+                    "Review the active product price list",
+                    "This page shows the product pricing loaded from the workbook currently in session, so you can validate commission inputs before finalizing a report.",
+                    "Workbook prices",
+                )
                 if 'raw_data' in st.session_state and 'prices' in st.session_state.raw_data:
                     with st.container(border=True):
                         st.write("Current price list loaded from your monthly Excel file.")
@@ -1583,6 +2481,12 @@ def main():
 
         # --- History Log Page ---
         elif page == "History Log":
+                render_page_intro(
+                    "Archive explorer",
+                    "Browse past commission sessions and payout details",
+                    "Filter archived reports by period or stylist, then drill into each session for a quick performance summary and payout breakdown.",
+                    "Saved reports",
+                )
                 history = get_history_from_supabase()
                 if not history.empty:
                     if user_role == "stylist": history = history[history['stylist_name'] == user_display_name]
@@ -1718,8 +2622,58 @@ def main():
 
         # --- User Management Page ---
         elif page == "User Management" and user_role == "admin":
+                render_page_intro(
+                    "Admin controls",
+                    "Manage dashboard access for your team",
+                    "Review user accounts, reset passwords, and keep roles organized without leaving the commission app.",
+                    "Admin only",
+                )
                 with st.container(border=True):
                     st.markdown('<div class="page-header" style="margin-top:0;">User Management</div>', unsafe_allow_html=True)
+                    if "show_create_user_form" not in st.session_state:
+                        st.session_state.show_create_user_form = False
+
+                    action_cols = st.columns([1, 4])
+                    with action_cols[0]:
+                        if st.button(
+                            "Create New User",
+                            key="toggle_create_user_form",
+                            type="primary",
+                            use_container_width=True,
+                        ):
+                            st.session_state.show_create_user_form = not st.session_state.show_create_user_form
+
+                    if st.session_state.show_create_user_form:
+                        st.markdown("""
+                            <div class="surface-panel">
+                                <div class="surface-title">Create a new account</div>
+                                <div class="surface-copy">Add an admin or stylist account directly from this page.</div>
+                            </div>
+                        """, unsafe_allow_html=True)
+                        with st.form("create_user_form", clear_on_submit=True):
+                            create_cols = st.columns(3)
+                            new_name = create_cols[0].text_input("Full Name", placeholder="e.g. Hussain")
+                            new_username = create_cols[1].text_input("Username", placeholder="e.g. hussain")
+                            new_role = create_cols[2].selectbox("Role", ["stylist", "admin"])
+                            new_password = st.text_input("Temporary Password", type="password", placeholder="Set a starter password")
+                            if st.form_submit_button("Create User", type="primary", use_container_width=True):
+                                if not new_name.strip() or not new_username.strip() or not new_password:
+                                    st.error("Please fill in name, username, and password.")
+                                else:
+                                    user_created = save_user_to_supabase({
+                                        "username": new_username.strip(),
+                                        "password": new_password,
+                                        "name": new_name.strip(),
+                                        "role": new_role,
+                                    })
+                                    if user_created:
+                                        st.session_state.show_create_user_form = False
+                                        st.success(f"Created user @{new_username.strip()}.")
+                                        st.rerun()
+                                    else:
+                                        st.error("Could not create the user. The username may already exist or Supabase may be unavailable.")
+
+                    st.markdown('<div style="margin-top: 1rem;"></div>', unsafe_allow_html=True)
                     users = get_users_from_supabase()
                     if not users.empty:
                         for _, u in users.iterrows():
@@ -1744,16 +2698,43 @@ def main():
                                 with col_actions:
                                     c1, c2 = st.columns(2)
                                     with c1:
-                                        with st.popover("Reset", use_container_width=True):
-                                            new_pw = st.text_input("New Password", type="password", key=f"input_pw_{u['username']}")
-                                            if st.button("Save", key=f"save_pw_{u['username']}", use_container_width=True, type="primary"):
-                                                if new_pw and save_user_to_supabase({"username": u['username'], "password": new_pw, "name": u['name'], "role": u['role']}): st.success("Updated!")
-                                                else: st.error("Failed.")
+                                        reset_open_key = f"reset_open_{u['username']}"
+                                        if reset_open_key not in st.session_state:
+                                            st.session_state[reset_open_key] = False
+
+                                        if st.button(
+                                            "Reset",
+                                            key=f"toggle_reset_{u['username']}",
+                                            use_container_width=True,
+                                            type="secondary",
+                                        ):
+                                            st.session_state[reset_open_key] = not st.session_state[reset_open_key]
                                     with c2:
                                         if u['username'] != username:
                                             if st.button("Delete", key=f"del_{u['username']}", type="secondary", use_container_width=True):
                                                 if delete_user_from_supabase(u['username']): st.rerun()
                                         else: st.button("Self", disabled=True, use_container_width=True)
+
+                                if st.session_state.get(f"reset_open_{u['username']}", False):
+                                    st.markdown('<div style="margin-top: 0.75rem;"></div>', unsafe_allow_html=True)
+                                    reset_cols = st.columns([2.2, 1])
+                                    new_pw = reset_cols[0].text_input(
+                                        "New Password",
+                                        type="password",
+                                        key=f"input_pw_{u['username']}",
+                                        placeholder=f"Set a new password for @{u['username']}",
+                                    )
+                                    if reset_cols[1].button(
+                                        "Save Password",
+                                        key=f"save_pw_{u['username']}",
+                                        use_container_width=True,
+                                        type="primary",
+                                    ):
+                                        if new_pw and save_user_to_supabase({"username": u['username'], "password": new_pw, "name": u['name'], "role": u['role']}):
+                                            st.session_state[f"reset_open_{u['username']}"] = False
+                                            st.success("Password updated.")
+                                        else:
+                                            st.error("Failed to update password.")
                     else: st.info("No user accounts found.")
 
     elif st.session_state["authentication_status"] is False: st.error('Username/password is incorrect')
