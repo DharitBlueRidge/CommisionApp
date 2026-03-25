@@ -2094,6 +2094,7 @@ def main():
                     if history.empty:
                         st.info("No performance data found for your account yet.")
                     else:
+                        history["calculation_date_raw"] = history["calculation_date"].astype(str)
                         history['calculation_date'] = pd.to_datetime(history['calculation_date'], format='ISO8601', errors='coerce')
                         history = history.dropna(subset=['calculation_date'])
                         
@@ -2121,6 +2122,11 @@ def main():
                         trend_source = pd.DataFrame()
                         history_for_monthly = history.copy()
                         archived_session_summary = build_latest_archived_session_summary(history_for_monthly)
+                        archived_periods = set()
+                        if not archived_session_summary.empty and "period" in archived_session_summary.columns:
+                            archived_periods = set(archived_session_summary["period"].dropna().astype(str).tolist())
+                        focus_month = st.session_state.get("selected_month")
+                        focus_changed = bool(focus_month) and st.session_state.get("dashboard_focus_month") != focus_month
                         trend_sources = []
                         monthly_filter_options = []
                         detail_filter_options = []
@@ -2153,16 +2159,37 @@ def main():
                             )
                             if user_role == "stylist":
                                 trend_source = trend_source[trend_source["stylist_name"] == user_display_name]
+                            # Ensure period always matches the actual business date, not a stale stored label.
+                            if "trend_date" in trend_source.columns:
+                                trend_source["trend_date"] = pd.to_datetime(trend_source["trend_date"], errors="coerce")
+                                trend_source = trend_source.dropna(subset=["trend_date"])
+                                trend_source["period"] = trend_source["trend_date"].dt.strftime("%B %Y")
+
+                            # Prefer the latest archived run per period (avoids double counting when a report is
+                            # deleted and re-archived, or when both archived + workbook trends exist).
+                            latest_run_by_period = {}
+                            if "period" in history.columns and "calculation_date" in history.columns and "calculation_date_raw" in history.columns:
+                                latest_idx = history.groupby("period")["calculation_date"].idxmax()
+                                latest_rows = history.loc[latest_idx, ["period", "calculation_date_raw"]].dropna()
+                                latest_run_by_period = dict(zip(latest_rows["period"].astype(str), latest_rows["calculation_date_raw"].astype(str)))
+
+                            if latest_run_by_period and "run_ts" in trend_source.columns and "period" in trend_source.columns:
+                                trend_source["__latest_run_ts"] = trend_source["period"].map(latest_run_by_period)
+                                trend_source = trend_source[trend_source["run_ts"] == trend_source["__latest_run_ts"]].copy()
+                                trend_source = trend_source.drop(columns=["__latest_run_ts"], errors="ignore")
 
                         if time_view == "Monthly Trend":
                             monthly_filter_options = sorted(
                                 archived_session_summary["period"].dropna().astype(str).drop_duplicates().tolist(),
                                 key=lambda value: datetime.strptime(value, "%B %Y")
                             )
+                            if focus_changed and focus_month in monthly_filter_options:
+                                st.session_state["dashboard_focus_month"] = focus_month
+                                st.session_state["monthly_trend_filter"] = [focus_month]
                             selected_months = st.multiselect(
                                 "Filter months",
                                 monthly_filter_options,
-                                default=monthly_filter_options[-6:] if len(monthly_filter_options) > 6 else monthly_filter_options,
+                                default=[st.session_state.get("selected_month")] if st.session_state.get("selected_month") in monthly_filter_options else (monthly_filter_options[-1:] if monthly_filter_options else []),
                                 help="Choose which archived reporting months to include in the monthly trend chart.",
                                 key="monthly_trend_filter",
                             )
@@ -2181,14 +2208,20 @@ def main():
                                 )
                                 chart_data["PeriodLabel"] = chart_data["PeriodDate"].dt.strftime("%b %Y")
                         elif not trend_source.empty:
-                            detail_filter_options = sorted(
-                                trend_source["period"].dropna().astype(str).drop_duplicates().tolist(),
-                                key=lambda value: datetime.strptime(value, "%B %Y")
-                            )
+                            # Prefer archived periods only, so workbook months that weren't archived yet don't
+                            # change dashboard analytics by default.
+                            trend_periods = set(trend_source["period"].dropna().astype(str).drop_duplicates().tolist())
+                            preferred_periods = (trend_periods & archived_periods) if archived_periods else trend_periods
+                            detail_filter_options = sorted(preferred_periods, key=lambda value: datetime.strptime(value, "%B %Y"))
+                            if not detail_filter_options:
+                                detail_filter_options = sorted(trend_periods, key=lambda value: datetime.strptime(value, "%B %Y"))
+                            if focus_changed and focus_month in detail_filter_options:
+                                st.session_state["dashboard_focus_month"] = focus_month
+                                st.session_state["detail_trend_filter"] = [focus_month]
                             selected_months = st.multiselect(
                                 "Filter months",
                                 detail_filter_options,
-                                default=detail_filter_options[-6:] if len(detail_filter_options) > 6 else detail_filter_options,
+                                default=[st.session_state.get("selected_month")] if st.session_state.get("selected_month") in detail_filter_options else (detail_filter_options[-1:] if detail_filter_options else []),
                                 help="Choose which reporting months to include in the trend chart.",
                                 key="detail_trend_filter",
                             )
@@ -2418,6 +2451,7 @@ def main():
                             all_services,
                             default=valid_default_services,
                             label_visibility="collapsed",
+                            key=f"svc_services_{st.session_state.selected_month}_{curr_s}",
                         )
                         c1, c2 = st.columns(2)
                         with c1:
@@ -2703,6 +2737,9 @@ def main():
                     "Saved reports",
                 )
                 history = get_history_from_supabase()
+                if history.empty:
+                    st.info("No historical data found. Archive a report to start building history.")
+                    return
                 if not history.empty:
                     if user_role == "stylist": history = history[history['stylist_name'] == user_display_name]
                     history['calculation_date_dt'] = pd.to_datetime(history['calculation_date'], format='ISO8601', errors='coerce')
