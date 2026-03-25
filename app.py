@@ -39,7 +39,7 @@ st.set_page_config(page_title=PAGE_TITLE, layout="wide", initial_sidebar_state="
 
 # --- Supabase Utilities ---
 @st.cache_data(ttl=600)
-def get_history_from_supabase():
+def get_history_from_supabase(cache_bust=0):
     url = f"{st.secrets['supabase']['url']}/rest/v1/calculation_history?select=*"
     headers = {
         "apikey": st.secrets["supabase"]["key"],
@@ -157,7 +157,7 @@ def delete_history_session_from_supabase(run_ts):
         return False, str(exc)
 
 @st.cache_data(ttl=600)
-def get_trend_history_from_supabase():
+def get_trend_history_from_supabase(cache_bust=0):
     url = f"{st.secrets['supabase']['url']}/rest/v1/calculation_trend_history?select=*"
     headers = {
         "apikey": st.secrets["supabase"]["key"],
@@ -1963,6 +1963,9 @@ def render_light_table(dataframe, column_labels=None, money_cols=None, date_cols
 def main():
     apply_custom_css()
     render_theme_lock()
+
+    if "cache_bust" not in st.session_state:
+        st.session_state["cache_bust"] = 0
     
     # --- Dynamic User Management from Supabase ---
     users_df = get_users_from_supabase()
@@ -2077,8 +2080,15 @@ def main():
 
         # --- Dashboard Page ---
         if page == "Dashboard":
-                history = get_history_from_supabase()
-                trend_history = get_trend_history_from_supabase()
+                top_cols = st.columns([1, 1])
+                with top_cols[1]:
+                    if st.button("Refresh Data", key="refresh_dashboard_data", use_container_width=True):
+                        st.session_state["cache_bust"] += 1
+                        st.cache_data.clear()
+                        st.rerun()
+
+                history = get_history_from_supabase(st.session_state["cache_bust"])
+                trend_history = get_trend_history_from_supabase(st.session_state["cache_bust"])
                 render_page_intro(
                     "Performance overview",
                     "Track revenue, payouts, and stylist momentum",
@@ -2736,7 +2746,12 @@ def main():
                     "Filter archived reports by period or stylist, then drill into each session for a quick performance summary and payout breakdown.",
                     "Saved reports",
                 )
-                history = get_history_from_supabase()
+                if st.button("Refresh Data", key="refresh_history_data", use_container_width=True):
+                    st.session_state["cache_bust"] += 1
+                    st.cache_data.clear()
+                    st.rerun()
+
+                history = get_history_from_supabase(st.session_state["cache_bust"])
                 if history.empty:
                     st.info("No historical data found. Archive a report to start building history.")
                     return
