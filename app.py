@@ -1966,6 +1966,8 @@ def main():
 
     if "cache_bust" not in st.session_state:
         st.session_state["cache_bust"] = 0
+    if "stylist_configs_by_month" not in st.session_state:
+        st.session_state["stylist_configs_by_month"] = {}
     
     # --- Dynamic User Management from Supabase ---
     users_df = get_users_from_supabase()
@@ -2393,19 +2395,36 @@ def main():
                                     df_services,
                                     df_products,
                                     df_prices,
-                                    st.session_state.get("stylist_configs", {}),
+                                    {},
                                 )
                                 st.session_state.uploaded_trend_records = workbook_trend_records
-                                st.markdown('<div class="section-title">Select Month</div>', unsafe_allow_html=True)
+                                st.markdown('<div class="section-title">Select Period(s)</div>', unsafe_allow_html=True)
                                 default_month = st.session_state.get("selected_month")
                                 if default_month not in available_months:
                                     default_month = available_months[-1]
-                                st.session_state.selected_month = st.selectbox(
-                                    "",
+                                default_months = st.session_state.get("selected_months_to_calculate") or [default_month]
+                                default_months = [m for m in default_months if m in available_months] or [default_month]
+
+                                selected_months_to_calculate = st.multiselect(
+                                    "Months to include in this upload",
                                     available_months,
-                                    index=available_months.index(default_month),
-                                    label_visibility="collapsed"
+                                    default=default_months,
+                                    help="Select one or more months. Each month will be a separate report entry when archived.",
+                                    key="selected_months_to_calculate_widget",
                                 )
+                                if not selected_months_to_calculate:
+                                    st.warning("Select at least one month to continue.")
+                                    st.stop()
+
+                                # Persist explicitly using a different key than the widget (Streamlit restriction).
+                                st.session_state["selected_months_to_calculate"] = list(selected_months_to_calculate)
+
+                                # Default to the earliest selected month; configuration/preview period can be changed later.
+                                selected_months_sorted = sorted(
+                                    selected_months_to_calculate,
+                                    key=lambda x: datetime.strptime(x, "%B %Y"),
+                                )
+                                st.session_state.selected_month = selected_months_sorted[0]
                                 if created_accounts:
                                     created_preview = ", ".join(f"{item['name']} (@{item['username']})" for item in created_accounts[:4])
                                     st.success(f"Created {len(created_accounts)} new stylist account(s): {created_preview}")
@@ -2418,16 +2437,28 @@ def main():
                     data = st.session_state.raw_data
                     df_s = data['services']
                     df_s['Date_dt'] = pd.to_datetime(df_s['Date'], dayfirst=True, errors='coerce')
-                    df_month = df_s[df_s['Date_dt'].dt.strftime('%B %Y') == st.session_state.selected_month].copy()
+                    months_to_configure = (
+                        st.session_state.get("selected_months_to_calculate")
+                        or st.session_state.get("workbook_months")
+                        or [st.session_state.selected_month]
+                    )
+                    config_month = st.selectbox(
+                        "Configure period",
+                        months_to_configure,
+                        index=months_to_configure.index(st.session_state.selected_month) if st.session_state.selected_month in months_to_configure else 0,
+                        key="active_config_month",
+                    )
+                    st.session_state.selected_month = config_month
+                    df_month = df_s[df_s['Date_dt'].dt.strftime('%B %Y') == config_month].copy()
                     stylists = sorted(df_month['Stylist'].dropna().unique().tolist())
                     if not stylists:
-                        st.warning(f"No stylists found for {st.session_state.selected_month}. Please choose another month from the uploaded workbook.")
+                        st.warning(f"No stylists found for {config_month}. Please choose another month from the uploaded workbook.")
                         st.session_state.wizard_step = 1
                         st.rerun()
                     st.markdown(f"""
                         <div class="surface-panel">
                             <div class="surface-title">Configure staff inputs</div>
-                            <div class="surface-copy">Adjust service commission eligibility, weekly referrals, and review counts for {len(stylists)} stylists in {st.session_state.selected_month}.</div>
+                            <div class="surface-copy">Adjust service commission eligibility, weekly referrals, and review counts for {len(stylists)} stylists in {config_month}.</div>
                         </div>
                     """, unsafe_allow_html=True)
                     if 'active_stylist' not in st.session_state or st.session_state.active_stylist not in stylists:
@@ -2440,10 +2471,11 @@ def main():
                             st.rerun()
                     curr_s = st.session_state.active_stylist
                     month_week_keys = get_month_week_keys(df_month)
-                    if curr_s not in st.session_state.stylist_configs:
-                        st.session_state.stylist_configs[curr_s] = {'services': [], 'referrals': [], 'reviews': []}
-                    st.session_state.stylist_configs[curr_s] = ensure_week_input_length(
-                        st.session_state.stylist_configs[curr_s],
+                    month_configs = st.session_state["stylist_configs_by_month"].setdefault(config_month, {})
+                    if curr_s not in month_configs:
+                        month_configs[curr_s] = {'services': [], 'referrals': [], 'reviews': []}
+                    month_configs[curr_s] = ensure_week_input_length(
+                        month_configs[curr_s],
                         max(len(month_week_keys), 1),
                     )
                     with st.container(border=True):
@@ -2451,38 +2483,38 @@ def main():
                         all_services = sorted(df_month['Service'].unique().tolist())
                         valid_default_services = [
                             service
-                            for service in st.session_state.stylist_configs[curr_s]['services']
+                            for service in month_configs[curr_s]['services']
                             if service in all_services
                         ]
-                        st.session_state.stylist_configs[curr_s]['services'] = valid_default_services
+                        month_configs[curr_s]['services'] = valid_default_services
                         st.markdown('<div class="section-title" style="font-size: 1.1rem;">Service Commission (10%)</div>', unsafe_allow_html=True)
-                        st.session_state.stylist_configs[curr_s]['services'] = st.multiselect(
+                        month_configs[curr_s]['services'] = st.multiselect(
                             "Select services:",
                             all_services,
                             default=valid_default_services,
                             label_visibility="collapsed",
-                            key=f"svc_services_{st.session_state.selected_month}_{curr_s}",
+                            key=f"svc_services_{config_month}_{curr_s}",
                         )
                         c1, c2 = st.columns(2)
                         with c1:
                             st.markdown('<div class="section-title" style="font-size: 1.1rem;">Weekly Referrals</div>', unsafe_allow_html=True)
                             for w in range(max(len(month_week_keys), 1)):
-                                st.session_state.stylist_configs[curr_s]['referrals'][w] = st.number_input(
+                                month_configs[curr_s]['referrals'][w] = st.number_input(
                                     f"Week {w+1}",
                                     min_value=0,
                                     step=1,
-                                    value=int(st.session_state.stylist_configs[curr_s]['referrals'][w]),
-                                    key=f"ref_{curr_s}_{w}",
+                                    value=int(month_configs[curr_s]['referrals'][w]),
+                                    key=f"ref_{config_month}_{curr_s}_{w}",
                                 )
                         with c2:
                             st.markdown('<div class="section-title" style="font-size: 1.1rem;">5-Star Reviews</div>', unsafe_allow_html=True)
                             for w in range(max(len(month_week_keys), 1)):
-                                st.session_state.stylist_configs[curr_s]['reviews'][w] = st.number_input(
+                                month_configs[curr_s]['reviews'][w] = st.number_input(
                                     f"Week {w+1} ",
                                     min_value=0,
                                     step=1,
-                                    value=int(st.session_state.stylist_configs[curr_s]['reviews'][w]),
-                                    key=f"rev_{curr_s}_{w}",
+                                    value=int(month_configs[curr_s]['reviews'][w]),
+                                    key=f"rev_{config_month}_{curr_s}_{w}",
                                 )
                     col_back, col_next = st.columns([1, 1])
                     with col_back:
@@ -2496,49 +2528,88 @@ def main():
                     df_products = data['products']
                     df_prices = data['prices']
                     df_services['Date_dt'] = pd.to_datetime(df_services['Date'], dayfirst=True, errors='coerce')
-                    df_month = df_services[df_services['Date_dt'].dt.strftime('%B %Y') == st.session_state.selected_month].copy()
-                    stylists = sorted(df_month['Stylist'].dropna().unique().tolist())
-                    results = []
-                    prod_breakdown = []
-                    for s in stylists:
-                        df_s = df_month[df_month['Stylist'] == s]
-                        week_count = max(len(get_month_week_keys(df_s)), 1)
-                        config = ensure_week_input_length(
-                            st.session_state.stylist_configs.get(s, {'services': [], 'referrals': [], 'reviews': []}),
-                            week_count,
-                        )
-                        df_s['Week'] = ((df_s['Date_dt'].dt.day - 1) // 7) + 1
-                        weekly_groups = df_s.groupby('Week')
-                        daily_bonus_total = 0
-                        for week, week_data in weekly_groups:
-                            weekly_sales = week_data['Amount'].sum()
-                            if calculations.calculate_weekly_bonus_eligibility(weekly_sales):
-                                daily_sales = week_data.groupby('Date_dt')['Amount'].sum()
-                                for ds in daily_sales: daily_bonus_total += calculations.calculate_daily_sales_bonus(ds)
-                        monthly_sales = df_s['Amount'].sum()
-                        stretch_bonus = calculations.calculate_stretch_bonus(monthly_sales)
-                        svc_sales = df_s[df_s['Service'].isin(config['services'])]['Amount'].sum()
-                        svc_comm = calculations.calculate_service_commission(svc_sales)
-                        prod_comm, stylist_product_breakdown = calculate_product_commission_entries(
-                            df_products,
-                            df_prices,
-                            s,
-                            selected_month=st.session_state.selected_month,
-                        )
-                        for item in stylist_product_breakdown:
-                            prod_breakdown.append({
-                                "Stylist": s,
-                                "Product": item["product"],
-                                "Quantity": item["quantity"],
-                                "Revenue": item["revenue"],
-                                "Cost": item["cost_price"],
-                                "Profit": item["profit"],
-                                "Comm": item["commission"],
+                    months_to_calculate = (
+                        st.session_state.get("selected_months_to_calculate")
+                        or st.session_state.get("workbook_months")
+                        or [st.session_state.selected_month]
+                    )
+                    results_by_month = {}
+                    breakdown_by_month = {}
+                    month_summary_rows = []
+
+                    for month in months_to_calculate:
+                        df_month = df_services[df_services['Date_dt'].dt.strftime('%B %Y') == month].copy()
+                        stylists = sorted(df_month['Stylist'].dropna().unique().tolist())
+                        month_configs = st.session_state["stylist_configs_by_month"].get(month, {})
+
+                        month_results = []
+                        month_breakdown = []
+                        for s in stylists:
+                            df_s = df_month[df_month['Stylist'] == s]
+                            week_count = max(len(get_month_week_keys(df_s)), 1)
+                            config = ensure_week_input_length(
+                                month_configs.get(s, {'services': [], 'referrals': [], 'reviews': []}),
+                                week_count,
+                            )
+                            df_s['Week'] = ((df_s['Date_dt'].dt.day - 1) // 7) + 1
+                            weekly_groups = df_s.groupby('Week')
+                            daily_bonus_total = 0
+                            for week, week_data in weekly_groups:
+                                weekly_sales = week_data['Amount'].sum()
+                                if calculations.calculate_weekly_bonus_eligibility(weekly_sales):
+                                    daily_sales = week_data.groupby('Date_dt')['Amount'].sum()
+                                    for ds in daily_sales: daily_bonus_total += calculations.calculate_daily_sales_bonus(ds)
+                            monthly_sales = df_s['Amount'].sum()
+                            stretch_bonus = calculations.calculate_stretch_bonus(monthly_sales)
+                            svc_sales = df_s[df_s['Service'].isin(config['services'])]['Amount'].sum()
+                            svc_comm = calculations.calculate_service_commission(svc_sales)
+                            prod_comm, stylist_product_breakdown = calculate_product_commission_entries(
+                                df_products,
+                                df_prices,
+                                s,
+                                selected_month=month,
+                            )
+                            for item in stylist_product_breakdown:
+                                month_breakdown.append({
+                                    "Stylist": s,
+                                    "Product": item["product"],
+                                    "Quantity": item["quantity"],
+                                    "Revenue": item["revenue"],
+                                    "Cost": item["cost_price"],
+                                    "Profit": item["profit"],
+                                    "Comm": item["commission"],
+                                })
+                            ref_bonus = sum([calculations.calculate_referral_bonus(r) for r in config['referrals']])
+                            rev_bonus = sum([calculations.calculate_review_bonus(r, idx + 1) for idx, r in enumerate(config['reviews'])])
+                            total_bonus = daily_bonus_total + stretch_bonus + svc_comm + prod_comm + ref_bonus + rev_bonus
+                            month_results.append({"Stylist": s, "Monthly Sales": monthly_sales, "Daily Target Bonus": daily_bonus_total, "Stretch Bonus": stretch_bonus, "Service Commission": svc_comm, "Product Commission": prod_comm, "Referral Bonus": ref_bonus, "Review Bonus": rev_bonus, "Total Bonus": total_bonus})
+
+                        results_by_month[month] = month_results
+                        breakdown_by_month[month] = month_breakdown
+                        if month_results:
+                            month_df = pd.DataFrame(month_results)
+                            month_summary_rows.append({
+                                "Period": month,
+                                "Stylists": len(month_results),
+                                "Revenue": float(month_df["Monthly Sales"].sum()),
+                                "Payouts": float(month_df["Total Bonus"].sum()),
                             })
-                        ref_bonus = sum([calculations.calculate_referral_bonus(r) for r in config['referrals']])
-                        rev_bonus = sum([calculations.calculate_review_bonus(r, idx + 1) for idx, r in enumerate(config['reviews'])])
-                        total_bonus = daily_bonus_total + stretch_bonus + svc_comm + prod_comm + ref_bonus + rev_bonus
-                        results.append({"Stylist": s, "Monthly Sales": monthly_sales, "Daily Target Bonus": daily_bonus_total, "Stretch Bonus": stretch_bonus, "Service Commission": svc_comm, "Product Commission": prod_comm, "Referral Bonus": ref_bonus, "Review Bonus": rev_bonus, "Total Bonus": total_bonus})
+
+                    if len(months_to_calculate) > 1 and month_summary_rows:
+                        st.markdown('<div class="section-title" style="margin-top:0;">Selected Period Summary</div>', unsafe_allow_html=True)
+                        render_light_table(pd.DataFrame(month_summary_rows), money_cols=["Revenue", "Payouts"])
+
+                    report_month = st.selectbox(
+                        "Select period to preview",
+                        months_to_calculate,
+                        index=months_to_calculate.index(st.session_state.selected_month) if st.session_state.selected_month in months_to_calculate else 0,
+                        key="final_report_month",
+                    )
+                    st.session_state.selected_month = report_month
+                    results = results_by_month.get(report_month, [])
+                    prod_breakdown = breakdown_by_month.get(report_month, [])
+                    stylists = [row["Stylist"] for row in results]
+                    month_configs = st.session_state["stylist_configs_by_month"].get(report_month, {})
                 
                 if st.session_state.wizard_step != 3:
                     return
@@ -2558,34 +2629,26 @@ def main():
                         st.markdown('<div style="margin-top: 0.5rem;"></div>', unsafe_allow_html=True)
                         btn_cols = st.columns(2)
                         if btn_cols[0].button("← Edit Settings", use_container_width=True): st.session_state.wizard_step = 2; st.rerun()
-                        if btn_cols[1].button("Archive Report", type="primary", use_container_width=True):
-                            ts = datetime.now().isoformat()
-                            for res in results:
-                                save_to_supabase({"calculation_date": ts, "stylist_name": res["Stylist"], "monthly_sales": float(res["Monthly Sales"]), "daily_bonus": float(res["Daily Target Bonus"]), "stretch_bonus": float(res["Stretch Bonus"]), "product_commission": float(res["Product Commission"]), "service_commission": float(res["Service Commission"]), "referral_bonus": float(res["Referral Bonus"]), "review_bonus": float(res["Review Bonus"]), "total_bonus": float(res["Total Bonus"]), "period": st.session_state.selected_month})
-                            trend_records = build_trend_records(
-                                df_services,
-                                df_products,
-                                df_prices,
-                                st.session_state.stylist_configs,
-                                st.session_state.selected_month,
-                                ts,
-                            )
-                            trend_saved, trend_error = save_trend_history_to_supabase(trend_records)
-                            st.session_state.uploaded_trend_records = build_workbook_trend_history(
-                                df_services,
-                                df_products,
-                                df_prices,
-                                st.session_state.stylist_configs,
-                            )
-                            if trend_saved:
-                                st.success("Report archived with detailed trend history.")
+                        if btn_cols[1].button("Archive Reports", type="primary", use_container_width=True):
+                            base_ts = datetime.now()
+                            archive_errors = []
+                            for idx, month in enumerate(months_to_calculate):
+                                ts = (base_ts + timedelta(microseconds=idx)).isoformat()
+                                month_results = results_by_month.get(month, [])
+                                month_configs_loop = st.session_state["stylist_configs_by_month"].get(month, {})
+                                for res in month_results:
+                                    save_to_supabase({"calculation_date": ts, "stylist_name": res["Stylist"], "monthly_sales": float(res["Monthly Sales"]), "daily_bonus": float(res["Daily Target Bonus"]), "stretch_bonus": float(res["Stretch Bonus"]), "product_commission": float(res["Product Commission"]), "service_commission": float(res["Service Commission"]), "referral_bonus": float(res["Referral Bonus"]), "review_bonus": float(res["Review Bonus"]), "total_bonus": float(res["Total Bonus"]), "period": month})
+                                trend_records = build_trend_records(df_services, df_products, df_prices, month_configs_loop, month, ts)
+                                trend_saved, trend_error = save_trend_history_to_supabase(trend_records)
+                                if not trend_saved:
+                                    archive_errors.append((month, trend_error))
+
+                            st.session_state.uploaded_trend_records = build_workbook_trend_history(df_services, df_products, df_prices, {})
+                            if not archive_errors:
+                                st.success("Archived reports successfully. Each month was saved as a separate history entry.")
                             else:
-                                st.warning(
-                                    "Report archived, but detailed trend history could not be saved to Supabase. "
-                                    "Daily and weekly charts will disappear after refresh until the trend table is set up."
-                                )
-                                if trend_error:
-                                    st.caption(f"Trend save details: {trend_error[:220]}")
+                                st.warning("Reports archived, but some detailed trend history writes failed to Supabase.")
+                                st.caption(f"Trend save details: {str(archive_errors[0][1])[:220]}")
                     
                     st.markdown('<hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border);">', unsafe_allow_html=True)
                     active_tab = option_menu(
